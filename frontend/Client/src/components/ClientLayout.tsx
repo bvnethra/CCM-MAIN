@@ -13,15 +13,21 @@ export const ClientLayout: React.FC = () => {
   };
 
   const allNavItems = [
-    { label: 'Overview', path: '/', icon: <LayoutDashboard className="w-4 h-4" />, roles: ['CLIENT_ADMIN', 'CLIENT_USER', 'CLIENT_FINANCE'] },
-    { label: 'My Requests', path: '/requests', icon: <FileText className="w-4 h-4" />, roles: ['CLIENT_ADMIN', 'CLIENT_USER'] },
-    { label: 'Certificates Vault', path: '/certificates', icon: <Award className="w-4 h-4" />, roles: ['CLIENT_ADMIN', 'CLIENT_USER', 'CLIENT_FINANCE'] },
-    { label: 'Invoices & Billing', path: '/invoices', icon: <Receipt className="w-4 h-4" />, roles: ['CLIENT_ADMIN', 'CLIENT_FINANCE'] },
+    { label: 'Overview', path: '/', icon: <LayoutDashboard className="w-4 h-4" />, roles: ['SUPER_ADMIN', 'SYSTEM_ADMIN', 'LAB_TECHNICIAN', 'COLLECTION_AGENT', 'COMMERCIAL_MANAGER', 'QUALITY_APPROVER', 'CLIENT_ADMIN', 'CLIENT_USER', 'CLIENT_FINANCE'] },
+    { label: 'My Requests', path: '/requests', icon: <FileText className="w-4 h-4" />, roles: ['SUPER_ADMIN', 'SYSTEM_ADMIN', 'LAB_TECHNICIAN', 'COLLECTION_AGENT', 'QUALITY_APPROVER', 'CLIENT_ADMIN', 'CLIENT_USER'] },
+    { label: 'Certificates Vault', path: '/certificates', icon: <Award className="w-4 h-4" />, roles: ['SUPER_ADMIN', 'SYSTEM_ADMIN', 'LAB_TECHNICIAN', 'COLLECTION_AGENT', 'COMMERCIAL_MANAGER', 'QUALITY_APPROVER', 'CLIENT_ADMIN', 'CLIENT_USER', 'CLIENT_FINANCE'] },
+    { label: 'Invoices & Billing', path: '/invoices', icon: <Receipt className="w-4 h-4" />, roles: ['SUPER_ADMIN', 'SYSTEM_ADMIN', 'COMMERCIAL_MANAGER', 'CLIENT_ADMIN', 'CLIENT_FINANCE'] },
   ];
 
   const navItems = allNavItems.filter((item) => !user?.role || item.roles.includes(user.role));
 
   const roleLabel = {
+    SUPER_ADMIN: 'Super Administrator',
+    SYSTEM_ADMIN: 'System Administrator',
+    LAB_TECHNICIAN: 'Lab Technician',
+    COLLECTION_AGENT: 'Collection Agent',
+    COMMERCIAL_MANAGER: 'Commercial Manager',
+    QUALITY_APPROVER: 'Quality Approver',
     CLIENT_ADMIN: 'Client Admin',
     CLIENT_USER: 'Plant Engineer',
     CLIENT_FINANCE: 'Finance Lead'

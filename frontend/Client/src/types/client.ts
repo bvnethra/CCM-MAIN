@@ -1,4 +1,13 @@
-export type ClientRole = 'CLIENT_ADMIN' | 'CLIENT_USER' | 'CLIENT_FINANCE';
+export type ClientRole =
+  | 'SUPER_ADMIN'
+  | 'SYSTEM_ADMIN'
+  | 'LAB_TECHNICIAN'
+  | 'COLLECTION_AGENT'
+  | 'COMMERCIAL_MANAGER'
+  | 'QUALITY_APPROVER'
+  | 'CLIENT_ADMIN'
+  | 'CLIENT_USER'
+  | 'CLIENT_FINANCE';
 
 export interface ClientUser {
   id: string;

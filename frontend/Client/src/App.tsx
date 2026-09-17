@@ -68,7 +68,7 @@ export const App: React.FC = () => {
             <Route
               path="requests"
               element={
-                <RoleGuard allowedRoles={['CLIENT_ADMIN', 'CLIENT_USER']}>
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SYSTEM_ADMIN', 'LAB_TECHNICIAN', 'COLLECTION_AGENT', 'QUALITY_APPROVER', 'CLIENT_ADMIN', 'CLIENT_USER']}>
                   <RequestsPage />
                 </RoleGuard>
               }
@@ -77,7 +77,7 @@ export const App: React.FC = () => {
             <Route
               path="invoices"
               element={
-                <RoleGuard allowedRoles={['CLIENT_ADMIN', 'CLIENT_FINANCE']}>
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SYSTEM_ADMIN', 'COMMERCIAL_MANAGER', 'CLIENT_ADMIN', 'CLIENT_FINANCE']}>
                   <InvoicesPage />
                 </RoleGuard>
               }

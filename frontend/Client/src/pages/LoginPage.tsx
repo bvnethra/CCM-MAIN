@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Building, ArrowRight, ShieldCheck, UserCheck } from 'lucide-react';
+import { Mail, Lock, Building, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { ClientRole } from '../types/client';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [clientCode, setClientCode] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<ClientRole>('CLIENT_ADMIN');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -21,10 +19,14 @@ export const LoginPage: React.FC = () => {
       setError('Please enter your email');
       return;
     }
+    if (!password.trim()) {
+      setError('Please enter your password');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
-      await login(email, clientCode, role);
+      await login(email, password, clientCode);
       navigate('/');
     } catch (err: any) {
       setError(err.message || 'Login failed');
@@ -78,22 +80,6 @@ export const LoginPage: React.FC = () => {
                   placeholder="CLT-001"
                   className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800"
                 />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Access Role / Portal Profile</label>
-              <div className="relative">
-                <UserCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as ClientRole)}
-                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800 cursor-pointer"
-                >
-                  <option value="CLIENT_ADMIN">Client Administrator (Full Portal Access)</option>
-                  <option value="CLIENT_USER">Plant Engineer / Quality Staff (Requests & Certificates)</option>
-                  <option value="CLIENT_FINANCE">Finance & Accounts (Invoices & Billing)</option>
-                </select>
               </div>
             </div>
 
