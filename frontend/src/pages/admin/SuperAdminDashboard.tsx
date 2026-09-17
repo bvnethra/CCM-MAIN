@@ -179,9 +179,6 @@ export const SuperAdminDashboard: React.FC = () => {
             <span className="text-[11px] font-mono uppercase tracking-widest text-indigo-400 bg-indigo-900/60 px-2.5 py-0.5 rounded-full border border-indigo-700/50">
               Role: {user?.roleName || user?.role || 'Metrology Workspace'}
             </span>
-            <span className="text-[11px] text-emerald-400 font-mono">
-              {user?.organizationName || 'Apex Precision Labs'}
-            </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             Commercial Metrology Platform
@@ -189,30 +186,6 @@ export const SuperAdminDashboard: React.FC = () => {
           <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-xl">
             Live calibration management workspace tailored to your role privileges under NABL ISO/IEC 17025 standards.
           </p>
-        </div>
-
-        <div className="flex items-center gap-3 shrink-0">
-          {hasPermission(PERMISSION_CODES.REQUEST_CREATE) && (
-            <button
-              type="button"
-              onClick={() => navigate('/collection')}
-              className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/20 transition flex items-center gap-2"
-            >
-              <span>Create Request</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          )}
-          {/* HIDDEN FOR NOW: Onboard Company Button
-          {hasPermission(PERMISSION_CODES.ORGANIZATION_CREATE) && (
-            <button
-              type="button"
-              onClick={() => navigate('/organizations/new')}
-              className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold transition"
-            >
-              Onboard Company
-            </button>
-          )}
-          */}
         </div>
       </div>
 
