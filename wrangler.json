@@ -4,30 +4,10 @@
   "compatibility_date": "2024-09-23",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
-    "ENVIRONMENT": "development",
-    "SUPABASE_URL": "http://127.0.0.1:54321",
+    "ENVIRONMENT": "production",
+    "SUPABASE_URL": "https://owucaqkvostupxibracw.supabase.co",
+    "DATABASE_URL": "postgresql://postgres.owucaqkvoxtupxibracw:Ccm-main123%23%40@aws-0-ap-south-1.pooler.supabase.com:6543/postgres",
     "JWT_SECRET": "super-secret-jwt-key-for-calibration-commercial-module-testing",
     "DOCUMENT_SIGNED_URL_TTL_SECONDS": "300"
-  },
-  "r2_buckets": [
-    {
-      "binding": "DOCUMENTS_BUCKET",
-      "bucket_name": "ccm-documents"
-    }
-  ],
-  "queues": {
-    "producers": [
-      {
-        "queue": "calibration-commercial-jobs",
-        "binding": "CALIBRATION_JOBS_QUEUE"
-      }
-    ],
-    "consumers": [
-      {
-        "queue": "calibration-commercial-jobs",
-        "max_batch_size": 10,
-        "max_batch_timeout": 5
-      }
-    ]
   }
 }
