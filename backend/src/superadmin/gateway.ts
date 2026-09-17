@@ -49,8 +49,21 @@ app.onError(globalErrorHandler);
 
 // Static assets fallback (Cloudflare Workers ASSETS binding) & 404 handler
 app.notFound(async (c) => {
-    if (c.env && (c.env as any).ASSETS && !c.req.path.startsWith('/api')) {
-        return (c.env as any).ASSETS.fetch(c.req.raw);
+    if (!c.req.path.startsWith('/api')) {
+        if (c.env && (c.env as any).ASSETS) {
+            try {
+                const assetResponse = await (c.env as any).ASSETS.fetch(c.req.raw);
+                if (assetResponse.status !== 404) {
+                    return assetResponse;
+                }
+                // SPA client route fallback: serve index.html
+                const indexUrl = new URL('/', c.req.url);
+                return await (c.env as any).ASSETS.fetch(new Request(indexUrl.toString(), c.req.raw));
+            } catch {
+                return c.redirect('/', 302);
+            }
+        }
+        return c.redirect('/', 302);
     }
     return c.json({
         success: false,
