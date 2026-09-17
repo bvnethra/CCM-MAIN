@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start:api": "tsx src/server.ts",
-    "dev:api": "tsx watch src/server.ts"
+    "start:api": "tsx src/superadmin/server.ts",
+    "dev:api": "tsx watch src/superadmin/server.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",

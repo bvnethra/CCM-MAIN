@@ -1,6 +1,6 @@
 {
   "name": "caliberation-commercial-module",
-  "main": "src/gateway.ts",
+  "main": "src/superadmin/gateway.ts",
   "compatibility_date": "2024-09-23",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
