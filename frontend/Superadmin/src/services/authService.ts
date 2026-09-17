@@ -85,6 +85,11 @@ export const authService = {
     }
 
     const user = createUserForEmail(email);
+
+    if (user.role !== 'SUPER_ADMIN') {
+      throw new Error('Access Denied: This portal is exclusively for Super Administrators. Other roles cannot access this link.');
+    }
+
     const token = await createJwtForRole(user.role, user.email);
 
     return {

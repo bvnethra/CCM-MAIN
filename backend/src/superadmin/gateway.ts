@@ -47,6 +47,9 @@ app.route('/api/execution', executionWorker);
 // Global Error Handler
 app.onError(globalErrorHandler);
 
+// Dedicated Client Portal redirect
+app.get('/client', (c) => c.redirect('/client/', 301));
+
 // Static assets fallback (Cloudflare Workers ASSETS binding) & 404 handler
 app.notFound(async (c) => {
     if (!c.req.path.startsWith('/api')) {
@@ -56,12 +59,23 @@ app.notFound(async (c) => {
                 if (assetResponse.status !== 404) {
                     return assetResponse;
                 }
-                // SPA client route fallback: serve index.html
+                // If path is under /client, fallback to client/index.html
+                if (c.req.path.startsWith('/client')) {
+                    const clientIndexUrl = new URL('/client/index.html', c.req.url);
+                    return await (c.env as any).ASSETS.fetch(new Request(clientIndexUrl.toString(), c.req.raw));
+                }
+                // SPA client route fallback: serve root index.html (Superadmin)
                 const indexUrl = new URL('/', c.req.url);
                 return await (c.env as any).ASSETS.fetch(new Request(indexUrl.toString(), c.req.raw));
             } catch {
+                if (c.req.path.startsWith('/client')) {
+                    return c.redirect('/client/', 302);
+                }
                 return c.redirect('/', 302);
             }
+        }
+        if (c.req.path.startsWith('/client')) {
+            return c.redirect('/client/', 302);
         }
         return c.redirect('/', 302);
     }

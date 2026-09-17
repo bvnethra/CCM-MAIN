@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState } from 'react';
-import { ClientUser } from '../types/client';
+import { ClientUser, ClientRole } from '../types/client';
 
 interface AuthContextType {
   user: ClientUser | null;
   isAuthenticated: boolean;
-  login: (email: string, clientCode?: string) => Promise<void>;
+  login: (email: string, clientCode?: string, role?: ClientRole) => Promise<void>;
   logout: () => void;
+  switchRole: (role: ClientRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,7 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
-  const login = async (email: string, clientCode?: string) => {
+  const login = async (email: string, clientCode?: string, role: ClientRole = 'CLIENT_ADMIN') => {
     if (!email || !email.trim()) {
       throw new Error('Please enter your client email address');
     }
@@ -30,10 +31,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       fullName: email.split('@')[0].toUpperCase(),
       companyName: 'Bosch Automotive Components',
       clientCode: clientCode || 'CLT-BOSCH',
-      role: 'CLIENT_USER'
+      role
     };
     setUser(mockUser);
     localStorage.setItem('ccm_client_user', JSON.stringify(mockUser));
+  };
+
+  const switchRole = (role: ClientRole) => {
+    if (user) {
+      const updated = { ...user, role };
+      setUser(updated);
+      localStorage.setItem('ccm_client_user', JSON.stringify(updated));
+    }
   };
 
   const logout = () => {
@@ -42,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, switchRole }}>
       {children}
     </AuthContext.Provider>
   );

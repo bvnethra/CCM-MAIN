@@ -81,12 +81,18 @@ const DEFAULT_ORGANIZATION: Organization = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Initialize user from localStorage cache if available, preserving active session across URL changes and page reloads
   const [user, setUser] = useState<User | null>(() => {
     try {
       const cached = localStorage.getItem(AUTH_USER_CACHE_KEY);
       if (cached) {
-        return JSON.parse(cached);
+        const parsed = JSON.parse(cached);
+        // Exclusively allow SUPER_ADMIN on this portal. Evict all other roles immediately.
+        if (!parsed || parsed.role !== 'SUPER_ADMIN') {
+          localStorage.removeItem(AUTH_USER_CACHE_KEY);
+          localStorage.removeItem(AUTH_TOKEN_CACHE_KEY);
+          return null;
+        }
+        return parsed;
       }
     } catch (e) {
       console.warn('[Auth Cache] Failed to read user from cache', e);

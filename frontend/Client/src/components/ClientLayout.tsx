@@ -12,12 +12,20 @@ export const ClientLayout: React.FC = () => {
     navigate('/login');
   };
 
-  const navItems = [
-    { label: 'Overview', path: '/', icon: <LayoutDashboard className="w-4 h-4" /> },
-    { label: 'My Requests', path: '/requests', icon: <FileText className="w-4 h-4" /> },
-    { label: 'Certificates Vault', path: '/certificates', icon: <Award className="w-4 h-4" /> },
-    { label: 'Invoices & Billing', path: '/invoices', icon: <Receipt className="w-4 h-4" /> },
+  const allNavItems = [
+    { label: 'Overview', path: '/', icon: <LayoutDashboard className="w-4 h-4" />, roles: ['CLIENT_ADMIN', 'CLIENT_USER', 'CLIENT_FINANCE'] },
+    { label: 'My Requests', path: '/requests', icon: <FileText className="w-4 h-4" />, roles: ['CLIENT_ADMIN', 'CLIENT_USER'] },
+    { label: 'Certificates Vault', path: '/certificates', icon: <Award className="w-4 h-4" />, roles: ['CLIENT_ADMIN', 'CLIENT_USER', 'CLIENT_FINANCE'] },
+    { label: 'Invoices & Billing', path: '/invoices', icon: <Receipt className="w-4 h-4" />, roles: ['CLIENT_ADMIN', 'CLIENT_FINANCE'] },
   ];
+
+  const navItems = allNavItems.filter((item) => !user?.role || item.roles.includes(user.role));
+
+  const roleLabel = {
+    CLIENT_ADMIN: 'Client Admin',
+    CLIENT_USER: 'Plant Engineer',
+    CLIENT_FINANCE: 'Finance Lead'
+  }[user?.role || 'CLIENT_ADMIN'];
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -31,7 +39,12 @@ export const ClientLayout: React.FC = () => {
               </div>
               <div>
                 <div className="text-sm font-bold text-slate-900 leading-tight">CLIENT PORTAL</div>
-                <div className="text-[10px] text-slate-500 font-mono tracking-wider">{user?.companyName}</div>
+                <div className="text-[10px] text-slate-500 font-mono tracking-wider flex items-center gap-1.5">
+                  <span>{user?.companyName}</span>
+                  <span className="inline-block px-1.5 py-0.2 bg-indigo-50 text-indigo-700 font-semibold rounded text-[9px]">
+                    {roleLabel}
+                  </span>
+                </div>
               </div>
             </div>
 

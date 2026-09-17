@@ -1,10 +1,12 @@
+export type ClientRole = 'CLIENT_ADMIN' | 'CLIENT_USER' | 'CLIENT_FINANCE';
+
 export interface ClientUser {
   id: string;
   email: string;
   fullName: string;
   companyName: string;
   clientCode: string;
-  role: 'CLIENT_USER';
+  role: ClientRole;
 }
 
 export interface ClientRequestItem {
