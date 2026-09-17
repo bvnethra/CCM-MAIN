@@ -1,6 +1,6 @@
 {
   "name": "ccm-api-gateway",
-  "main": "src/gateway.ts",
+  "main": "backend/src/gateway.ts",
   "compatibility_date": "2024-09-15",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
