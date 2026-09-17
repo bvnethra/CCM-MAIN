@@ -156,6 +156,31 @@ export const LoginPage: React.FC = () => {
                 </>
               )}
             </button>
+
+            {/* Quick Sign-In Credentials Helper */}
+            <div className="mt-6 pt-4 border-t border-slate-100">
+              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                Quick Sign-In Credentials:
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => { setEmail('bvnethra2005@gmail.com'); setPassword('admin123'); }}
+                  className="p-2 text-left rounded-xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 transition cursor-pointer"
+                >
+                  <div className="font-semibold text-slate-800">Admin</div>
+                  <div className="text-slate-500 text-[10px] truncate">bvnethra2005@gmail.com</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEmail('admin@apexmetrology.com'); setPassword('admin123'); }}
+                  className="p-2 text-left rounded-xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 transition cursor-pointer"
+                >
+                  <div className="font-semibold text-slate-800">Super Admin</div>
+                  <div className="text-slate-500 text-[10px] truncate">admin@apexmetrology.com</div>
+                </button>
+              </div>
+            </div>
           </form>
         </div>
 

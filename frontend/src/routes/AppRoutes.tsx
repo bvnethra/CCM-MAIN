@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute, PermissionRoute } from './RouteGuards';
+import { useAuth } from '../context/AuthContext';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { LoginPage } from '../pages/auth/LoginPage';
 import { Forbidden403Page, NotFound404Page } from '../pages/error/ErrorPages';
@@ -48,11 +49,19 @@ import {
 import { PERMISSION_CODES } from '../constants/permissions';
 
 export const AppRoutes: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+
   return (
     <Routes>
-      {/* Public Routes */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<LoginPage />} />
+      {/* Public Routes - Login is the first/entry page */}
+      <Route
+        path="/login"
+        element={isAuthenticated ? <Navigate to="/admin/dashboard" replace /> : <LoginPage />}
+      />
+      <Route
+        path="/signup"
+        element={isAuthenticated ? <Navigate to="/admin/dashboard" replace /> : <LoginPage />}
+      />
 
       {/* Protected Enterprise Dashboard Shell */}
       <Route

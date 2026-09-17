@@ -67,11 +67,21 @@ export function createUserForEmail(email: string): User {
 }
 
 export const authService = {
-  async login(email: string, _password?: string): Promise<LoginResponse> {
+  async login(email: string, password?: string): Promise<LoginResponse> {
     await new Promise((res) => setTimeout(res, 200));
     
     if (!email || !email.trim()) {
-      throw new Error('Please enter a valid email address');
+      throw new Error('Please enter a valid work email address');
+    }
+
+    if (!password || !password.trim()) {
+      throw new Error('Please enter your account password');
+    }
+
+    const normalized = email.trim().toLowerCase();
+    const known = SYSTEM_ACCOUNTS[normalized];
+    if (!known) {
+      throw new Error('Account not recognized. Please use a registered corporate email.');
     }
 
     const user = createUserForEmail(email);
