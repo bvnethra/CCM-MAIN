@@ -1,0 +1,1 @@
+export { itemService } from './clientService';
