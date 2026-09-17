@@ -1,7 +1,7 @@
 {
-  "name": "ccm-api-gateway",
+  "name": "caliberation-commercial-module",
   "main": "backend/src/gateway.ts",
-  "compatibility_date": "2024-09-15",
+  "compatibility_date": "2024-09-23",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
     "ENVIRONMENT": "development",
