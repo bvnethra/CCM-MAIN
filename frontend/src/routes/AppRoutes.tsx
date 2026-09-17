@@ -50,8 +50,9 @@ import { PERMISSION_CODES } from '../constants/permissions';
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Public Route */}
+      {/* Public Routes */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<LoginPage />} />
 
       {/* Protected Enterprise Dashboard Shell */}
       <Route

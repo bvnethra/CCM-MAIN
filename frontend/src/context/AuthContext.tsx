@@ -91,14 +91,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) {
       console.warn('[Auth Cache] Failed to read user from cache', e);
     }
-    return createUserForEmail('bvnethra2005@gmail.com');
+    return null;
   });
 
   const [token, setToken] = useState<string | null>(() => {
     try {
-      return localStorage.getItem(AUTH_TOKEN_CACHE_KEY) || 'mock-jwt-token-active';
+      return localStorage.getItem(AUTH_TOKEN_CACHE_KEY);
     } catch (e) {
-      return 'mock-jwt-token-active';
+      return null;
     }
   });
 
