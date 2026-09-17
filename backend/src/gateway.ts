@@ -44,24 +44,21 @@ app.route('/api/commercial', commercialWorker);
 app.route('/api', executionWorker);
 app.route('/api/execution', executionWorker);
 
-import { serveStatic } from '@hono/node-server/serve-static';
-
-// Serve static frontend bundle from dist for non-API routes
-app.use('/*', serveStatic({ root: './dist' }));
-app.get('/*', serveStatic({ path: './dist/index.html' }));
-
 // Global Error Handler
 app.onError(globalErrorHandler);
 
-// 404 Route Protection for unhandled requests
-app.notFound((c) => {
+// Static assets fallback (Cloudflare Workers ASSETS binding) & 404 handler
+app.notFound(async (c) => {
+    if (c.env && (c.env as any).ASSETS && !c.req.path.startsWith('/api')) {
+        return (c.env as any).ASSETS.fetch(c.req.raw);
+    }
     return c.json({
         success: false,
         error: {
             code: 'RESOURCE_NOT_FOUND',
             message: `Route '${c.req.path}' not found on API Gateway`
         }
-    });
+    }, 404);
 });
 
 export default app;

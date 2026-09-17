@@ -2,9 +2,9 @@ import { supabase } from '../auth/supabaseClient';
 import { createJwtForRole } from '../auth/demoTokens';
 
 const rawApiUrl = import.meta.env.VITE_API_BASE_URL;
-const API_BASE_URL = (rawApiUrl && !rawApiUrl.includes('calibration-commercial.com'))
+const API_BASE_URL = (rawApiUrl && !rawApiUrl.includes('localhost') && !rawApiUrl.includes('calibration-commercial.com'))
   ? rawApiUrl
-  : 'http://localhost:3000';
+  : (import.meta.env.DEV ? 'http://localhost:3000' : '');
 
 export interface ApiResponse<T = any> {
   success: boolean;
