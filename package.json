@@ -4,7 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "npm --prefix frontend/Superadmin run dev",
+    "dev:superadmin": "npm --prefix frontend/Superadmin run dev",
+    "dev:client": "npm --prefix frontend/Client run dev",
     "build": "npm --prefix frontend/Superadmin install && npm --prefix frontend/Superadmin run build",
+    "build:superadmin": "npm --prefix frontend/Superadmin install && npm --prefix frontend/Superadmin run build",
+    "build:client": "npm --prefix frontend/Client install && npm --prefix frontend/Client run build",
     "start:api": "npm --prefix backend run start:api",
     "db:apply": "node apply-schema.mjs"
   },
