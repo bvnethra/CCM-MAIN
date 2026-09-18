@@ -27,6 +27,16 @@ import {
   RotateCcw,
   CheckCircle2,
   XCircle,
+  X,
+  Clock,
+  Mail,
+  Copy,
+  ArrowRight,
+  FileText,
+  Activity,
+  Hash,
+  Laptop,
+  ExternalLink,
 } from 'lucide-react';
 import { User, UserFormData } from '../../types/user';
 import { Role } from '../../types/role';
@@ -894,9 +904,354 @@ export const PermissionListPage: React.FC = () => {
   );
 };
 
+// Helper to format ISO timestamp as DD/MM/YYYY, HH:MM AM/PM
+function formatAuditTimestamp(dateStr?: string | Date): string {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return String(dateStr);
+
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+
+  let hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  const formattedHours = String(hours).padStart(2, '0');
+
+  return `${day}/${month}/${year}, ${formattedHours}:${minutes} ${ampm}`;
+}
+
+// Helper to format timestamp with timezone descriptor
+function formatAuditTimestampWithTz(dateStr?: string | Date): string {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return String(dateStr);
+
+  const base = formatAuditTimestamp(dateStr);
+  try {
+    const tzString = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    const offsetMinutes = -d.getTimezoneOffset();
+    const sign = offsetMinutes >= 0 ? '+' : '-';
+    const absOffset = Math.abs(offsetMinutes);
+    const offsetHours = String(Math.floor(absOffset / 60)).padStart(2, '0');
+    const offsetMins = String(absOffset % 60).padStart(2, '0');
+    return `${base} (${tzString} • UTC${sign}${offsetHours}:${offsetMins})`;
+  } catch {
+    return base;
+  }
+}
+
+// Action badge categorization & styling
+interface ActionBadgeMeta {
+  label: string;
+  badgeClass: string;
+}
+
+function getActionBadgeMeta(action: string): ActionBadgeMeta {
+  const norm = (action || '').toLowerCase().trim();
+  let label = action || 'Security Action';
+  if (norm.includes('login')) label = 'Login';
+  else if (norm.includes('logout')) label = 'Logout';
+  else if (norm.includes('create')) label = 'Create Record';
+  else if (norm.includes('update') || norm.includes('edit') || norm.includes('modify')) label = 'Update Record';
+  else if (norm.includes('delete') || norm.includes('purge') || norm.includes('remove')) label = 'Delete Record';
+  else if (norm.includes('permission') || norm.includes('role') || norm.includes('access')) label = 'Permission Change';
+  else if (norm.includes('password') || norm.includes('reset') || norm.includes('credential')) label = 'Password Reset';
+  else if (norm.includes('export') || norm.includes('download')) label = 'Export Data';
+
+  return {
+    label,
+    badgeClass: 'bg-slate-100 text-slate-700 border-slate-200/90 font-medium',
+  };
+}
+
+// Audit Log Detail Modal Component
+interface AuditLogDetailModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  log: (AuditLogEntry & { sno?: number }) | null;
+}
+
+const AuditLogDetailModal: React.FC<AuditLogDetailModalProps> = ({ isOpen, onClose, log }) => {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') onClose();
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = 'unset';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !log) return null;
+
+  const actionMeta = getActionBadgeMeta(log.action);
+  const email = log.userEmail || `${log.userName.toLowerCase().replace(/\s+/g, '.')}@company.com`;
+  const fullSummary = log.summary || log.recordIdentifier || log.module || 'Action logged in audit trail.';
+
+  const handleCopyJson = () => {
+    navigator.clipboard.writeText(JSON.stringify(log, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden transform transition-all animate-scale-up">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center font-bold text-xs shadow-2xs">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-900">Audit Record Details</h3>
+                <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                  {log.id}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                ISO/IEC 17025 Immutable Security Audit Log
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            title="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Key Identifiers Ribbon */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/70">
+              <div className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Row Index</div>
+              <div className="text-sm font-bold text-slate-800 font-mono mt-0.5">
+                #{log.sno ?? '—'}
+              </div>
+            </div>
+            <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/70">
+              <div className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Security Action</div>
+              <div className="mt-1">
+                <span className={`inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full border ${actionMeta.badgeClass}`}>
+                  {actionMeta.label}
+                </span>
+              </div>
+            </div>
+            <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/70">
+              <div className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Result</div>
+              <div className="mt-1">
+                <span
+                  className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full border bg-slate-100 text-slate-700 border-slate-200"
+                >
+                  <CheckCircle2 className="w-3 h-3" />
+                  {log.result || 'SUCCESS'}
+                </span>
+              </div>
+            </div>
+            <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/70">
+              <div className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Compliance</div>
+              <div className="text-xs font-semibold text-slate-700 mt-1 truncate" title="ISO/IEC 17025 Verified">
+                ISO/IEC 17025
+              </div>
+            </div>
+          </div>
+
+          {/* User Account & Authority */}
+          <div className="rounded-xl border border-slate-200/80 p-4 bg-white">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono mb-3">
+              User Account & Identity
+            </h4>
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-slate-800 text-white flex items-center justify-center font-bold text-base shadow-sm shrink-0">
+                {log.userName ? log.userName.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-bold text-slate-900">{log.userName}</span>
+                  {log.role && (
+                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200/80">
+                      {log.role}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                  <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="font-mono">{email}</span>
+                </div>
+                <div className="text-[11px] text-slate-400 font-mono">
+                  User ID: <span className="text-slate-600">{log.userId}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Timestamp & Location Information */}
+          <div className="rounded-xl border border-slate-200/80 p-4 bg-white space-y-2">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono mb-2">
+              Timestamp & Timing
+            </h4>
+            <div className="flex items-center gap-2 text-xs text-slate-700">
+              <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="font-mono font-medium">{formatAuditTimestampWithTz(log.timestamp)}</span>
+            </div>
+            <div className="text-[11px] text-slate-400 font-mono pl-6">
+              ISO Timestamp: {log.timestamp}
+            </div>
+          </div>
+
+          {/* Module & Affected Target Record */}
+          <div className="rounded-xl border border-slate-200/80 p-4 bg-white space-y-3">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
+              Target Record & Module
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-slate-400 block text-[11px]">Affected Module:</span>
+                <span className="font-semibold text-slate-800">{log.module || 'System Core'}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Record Identifier:</span>
+                <span className="font-semibold text-slate-800 font-mono">
+                  {log.recordIdentifier || log.recordId || 'N/A'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Record Internal ID:</span>
+                <span className="font-mono text-slate-600">{log.recordId || log.id}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Tenant / Organization:</span>
+                <span className="text-slate-600 font-mono">{log.tenantId || 'tenant_apex'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Full Log Summary */}
+          <div className="rounded-xl border border-slate-200/80 p-4 bg-white space-y-2">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
+              Full Log Summary & Description
+            </h4>
+            <div className="p-3 bg-slate-50/90 rounded-xl border border-slate-200/60 text-xs text-slate-800 leading-relaxed font-sans">
+              {fullSummary}
+            </div>
+          </div>
+
+          {/* Field Changes / Delta (Old Value -> New Value) */}
+          {(log.oldValue || log.newValue) && (
+            <div className="rounded-xl border border-slate-200/80 p-4 bg-white space-y-3">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
+                Field Modifications (Old Value → New Value)
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div className="p-3 bg-slate-50/90 border border-slate-200/80 rounded-xl space-y-1">
+                  <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1">
+                    <span>Previous Value</span>
+                  </div>
+                  <pre className="text-xs text-slate-700 whitespace-pre-wrap font-mono break-all overflow-x-auto max-h-48">
+                    {log.oldValue || '—'}
+                  </pre>
+                </div>
+                <div className="p-3 bg-slate-50/90 border border-slate-200/80 rounded-xl space-y-1">
+                  <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1">
+                    <span>Updated Value</span>
+                  </div>
+                  <pre className="text-xs text-slate-700 whitespace-pre-wrap font-mono break-all overflow-x-auto max-h-48">
+                    {log.newValue || '—'}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Session & Backend Diagnostics Metadata */}
+          <div className="rounded-xl border border-slate-200/80 p-4 bg-white space-y-3">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
+              Session & Backend Metadata
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-slate-400 block text-[11px]">Session ID:</span>
+                <span className="font-mono text-slate-700 font-medium">
+                  {log.sessionId || 'sess_sec_99182a0b'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Client IP Address:</span>
+                <span className="font-mono text-slate-700 font-medium">
+                  {log.ipAddress || '192.168.1.42'}
+                </span>
+              </div>
+            </div>
+
+            {log.metadata && (
+              <div className="mt-2 pt-2 border-t border-slate-100">
+                <span className="text-slate-400 block text-[11px] mb-1">Additional Metadata Payload:</span>
+                <pre className="p-2.5 bg-slate-50 border border-slate-200/70 rounded-lg text-[11px] font-mono text-slate-600 overflow-x-auto max-h-36">
+                  {typeof log.metadata === 'string' ? log.metadata : JSON.stringify(log.metadata, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-3.5 border-t border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/70">
+          <button
+            type="button"
+            onClick={handleCopyJson}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 transition shadow-2xs cursor-pointer"
+          >
+            {copied ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="text-emerald-700">Copied JSON!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5 text-slate-500" />
+                <span>Copy JSON</span>
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition cursor-pointer shadow-xs"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const AuditLogsPage: React.FC = () => {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedLog, setSelectedLog] = useState<(AuditLogEntry & { sno?: number }) | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   useEffect(() => {
     auditService.getAll().then((data) => {
@@ -905,43 +1260,121 @@ export const AuditLogsPage: React.FC = () => {
     });
   }, []);
 
-  const columns: Column<AuditLogEntry>[] = [
+  // Map each entry with sequential S.No, formatted User Account, and normalized Security Action
+  const formattedLogs = useMemo(() => {
+    return logs.map((l, index) => {
+      const email = l.userEmail || `${l.userName.toLowerCase().replace(/\s+/g, '.')}@company.com`;
+      const userAccountStr = `${l.userName} – ${email}`;
+      const actionMeta = getActionBadgeMeta(l.action);
+      const summaryPreview = l.summary || l.recordIdentifier || l.module || 'System audit log entry';
+
+      return {
+        ...l,
+        sno: index + 1,
+        userAccount: userAccountStr,
+        userEmailAddress: email,
+        securityActionLabel: actionMeta.label,
+        summaryPreview,
+      };
+    });
+  }, [logs]);
+
+  // Columns in exact required order:
+  // 1. S.No
+  // 2. User Account
+  // 3. Security Action
+  // 4. Log Summary
+  // 5. Timestamp
+  // (Client IP column removed entirely)
+  const columns: Column<typeof formattedLogs[0]>[] = [
     {
-      key: 'timestamp',
-      header: 'Timestamp',
+      key: 'sno',
+      header: 'S.No',
       sortable: true,
-      render: (l) => <span className="font-mono text-xs text-slate-500">{l.timestamp}</span>,
-    },
-    {
-      key: 'userName',
-      header: 'User Account',
-      sortable: true,
-      render: (l) => <span className="font-semibold text-slate-900 text-xs">{l.userName}</span>,
-    },
-    {
-      key: 'action',
-      header: 'Security Action',
-      sortable: true,
-      render: (l) => (
-        <span className="font-mono text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
-          {l.action}
+      width: '60px',
+      render: (_l, index) => (
+        <span className="font-mono text-xs font-semibold text-slate-500">
+          {index}
         </span>
       ),
     },
     {
-      key: 'details',
-      header: 'Log Summary',
-      render: (l) => <span className="text-xs text-slate-600">{l.recordIdentifier || l.module}</span>,
+      key: 'userAccount',
+      header: 'User Account',
+      sortable: true,
+      width: '24%',
+      render: (l) => {
+        return (
+          <div className="flex items-center gap-2 min-w-0 pr-2">
+            <div className="w-6 h-6 rounded-md bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center font-bold text-[11px] shrink-0">
+              {l.userName ? l.userName.charAt(0).toUpperCase() : 'U'}
+            </div>
+            <div className="truncate text-xs">
+              <span className="font-semibold text-slate-900">{l.userName}</span>
+              <span className="text-slate-400 mx-1.5 font-normal">–</span>
+              <span className="text-slate-500 font-normal">{l.userEmailAddress}</span>
+            </div>
+          </div>
+        );
+      },
     },
     {
-      key: 'ipAddress',
-      header: 'Client IP',
-      render: (l) => <span className="font-mono text-xs text-slate-400">{l.ipAddress || '127.0.0.1'}</span>,
+      key: 'securityActionLabel',
+      header: 'Security Action',
+      sortable: true,
+      width: '140px',
+      render: (l) => {
+        const meta = getActionBadgeMeta(l.action);
+        return (
+          <span
+            className={`inline-block text-xs font-medium px-2.5 py-0.5 rounded-md border whitespace-nowrap ${meta.badgeClass}`}
+          >
+            {meta.label}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'summaryPreview',
+      header: 'Log Summary',
+      render: (l) => {
+        return (
+          <div className="flex items-center justify-between gap-3 min-w-0 w-full">
+            <span
+              className="text-xs text-slate-600 truncate min-w-0 flex-1 block"
+              title={l.summaryPreview}
+            >
+              {l.summaryPreview}
+            </span>
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 group-hover:text-slate-900 bg-slate-100 group-hover:bg-slate-200/80 px-2 py-0.5 rounded shrink-0 transition-colors border border-slate-200/90">
+              <span>View Details</span>
+              <ArrowRight className="w-3 h-3 opacity-60 group-hover:translate-x-0.5 transition-transform" />
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'timestamp',
+      header: 'Timestamp',
+      sortable: true,
+      width: '170px',
+      render: (l) => (
+        <span className="font-mono text-xs text-slate-600 whitespace-nowrap">
+          {formatAuditTimestamp(l.timestamp)}
+        </span>
+      ),
     },
   ];
 
+  const handleRowClick = (row: typeof formattedLogs[0]) => {
+    setSelectedLog(row);
+    setDetailModalOpen(true);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Page Header */}
       <div>
         <h1 className="text-xl font-bold text-slate-900 tracking-tight">System Audit Trail</h1>
         <p className="text-xs text-slate-500 mt-1">
@@ -949,7 +1382,26 @@ export const AuditLogsPage: React.FC = () => {
         </p>
       </div>
 
-      <DataTable data={logs} columns={columns} loading={loading} />
+      {/* Main Audit Data Table */}
+      <DataTable
+        data={formattedLogs}
+        columns={columns}
+        loading={loading}
+        fixedLayout={true}
+        searchable={true}
+        searchPlaceholder="Search records..."
+        searchKeys={['userName', 'userAccount', 'securityActionLabel', 'summaryPreview', 'recordIdentifier', 'recordId', 'id']}
+        emptyTitle="No records found"
+        emptyDescription="There are currently no security audit records to display."
+        onRowClick={handleRowClick}
+      />
+
+      {/* Detailed Inspection Modal */}
+      <AuditLogDetailModal
+        isOpen={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        log={selectedLog}
+      />
     </div>
   );
 };

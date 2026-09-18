@@ -327,7 +327,7 @@ class MockDataStore {
       signatures: stored?.signatures || [...initialSignatures],
       dispatches: stored?.dispatches || [...initialDispatches],
       deliveries: stored?.deliveries || [...initialDeliveries],
-      auditLogs: stored?.auditLogs || [...initialAuditLogs],
+      auditLogs: (stored?.auditLogs || []).filter((l) => !l.id.startsWith('AUD-2026-09')),
       dueList: stored?.dueList || [...initialDueList],
     };
 

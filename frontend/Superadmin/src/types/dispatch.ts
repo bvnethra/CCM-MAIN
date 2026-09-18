@@ -69,6 +69,7 @@ export interface AuditLogEntry {
   timestamp: string;
   userId: string;
   userName: string;
+  userEmail?: string;
   role: string;
   tenantId: string;
   organizationId: string;
@@ -79,5 +80,9 @@ export interface AuditLogEntry {
   oldValue?: string;
   newValue?: string;
   ipAddress?: string;
+  sessionId?: string;
+  details?: string;
+  summary?: string;
+  metadata?: Record<string, any> | string;
   result: 'SUCCESS' | 'FAILURE';
 }

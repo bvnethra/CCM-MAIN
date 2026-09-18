@@ -7,7 +7,7 @@ import { Pagination } from './Pagination';
 export interface Column<T> {
   key: string;
   header: string;
-  render?: (row: T) => React.ReactNode;
+  render?: (row: T, index: number) => React.ReactNode;
   sortable?: boolean;
   align?: 'left' | 'center' | 'right';
   width?: string;
@@ -27,6 +27,7 @@ interface DataTableProps<T> {
   emptyDescription?: string;
   onRowClick?: (row: T) => void;
   rowKey?: (row: T) => string;
+  fixedLayout?: boolean;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -43,6 +44,7 @@ export function DataTable<T extends Record<string, any>>({
   emptyDescription = 'Try adjusting your search or filters to find what you are looking for.',
   onRowClick,
   rowKey = (row) => row.id || JSON.stringify(row),
+  fixedLayout = false,
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -142,8 +144,8 @@ export function DataTable<T extends Record<string, any>>({
       )}
 
       {/* Table Container */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+      <div className={fixedLayout ? 'w-full overflow-hidden' : 'overflow-x-auto'}>
+        <table className={`w-full text-left border-collapse ${fixedLayout ? 'table-fixed' : ''}`}>
           <thead>
             <tr className="bg-slate-50/90 border-b border-slate-200/80 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
               {columns.map((col) => {
@@ -199,30 +201,35 @@ export function DataTable<T extends Record<string, any>>({
                 </td>
               </tr>
             ) : (
-              paginatedData.map((row) => (
-                <tr
-                  key={rowKey(row)}
-                  onClick={() => onRowClick && onRowClick(row)}
-                  className={`group transition-colors duration-150 hover:bg-sky-50/40 ${
-                    onRowClick ? 'cursor-pointer' : ''
-                  }`}
-                >
-                  {columns.map((col) => {
-                    const alignClass =
-                      col.align === 'right'
-                        ? 'text-right'
-                        : col.align === 'center'
-                        ? 'text-center'
-                        : 'text-left';
+              paginatedData.map((row, idx) => {
+                const globalIndex = (currentPage - 1) * pageSize + idx + 1;
+                return (
+                  <tr
+                    key={rowKey(row)}
+                    onClick={() => onRowClick && onRowClick(row)}
+                    className={`group transition-all duration-150 ${
+                      onRowClick
+                        ? 'cursor-pointer hover:bg-sky-50/60 hover:shadow-2xs active:bg-sky-100/50'
+                        : 'hover:bg-slate-50/50'
+                    }`}
+                  >
+                    {columns.map((col) => {
+                      const alignClass =
+                        col.align === 'right'
+                          ? 'text-right'
+                          : col.align === 'center'
+                          ? 'text-center'
+                          : 'text-left';
 
-                    return (
-                      <td key={col.key} className={`px-5 py-3.5 ${alignClass}`}>
-                        {col.render ? col.render(row) : row[col.key]}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))
+                      return (
+                        <td key={col.key} className={`px-5 py-3.5 ${alignClass}`}>
+                          {col.render ? col.render(row, globalIndex) : row[col.key]}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

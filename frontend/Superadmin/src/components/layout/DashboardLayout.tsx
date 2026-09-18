@@ -39,7 +39,7 @@ export const DashboardLayout: React.FC = () => {
         <Header onToggleSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
+          <div className="w-full">
             <Breadcrumbs />
             <Outlet />
           </div>
