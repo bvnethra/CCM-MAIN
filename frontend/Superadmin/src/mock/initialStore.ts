@@ -36,118 +36,9 @@ export interface AppStore {
   dueList: CalibrationDueItem[];
 }
 
-export const initialTenants: Tenant[] = [
-  {
-    id: 'ten-1789623527736',
-    name: '456',
-    code: '456',
-    tenantType: 'Enterprise',
-    registrationNumber: 'uytfdsfghj',
-    gstNumber: 'ZXCA5DQWERGBUKM',
-    contactEmail: 'apex@gmail.com',
-    contactPhone: '8574961235',
-    addressLine1: 'kjhgfd, lijhgf, lkjhgv',
-    city: 'Bangalore',
-    state: 'Karnataka',
-    country: 'India',
-    pincode: '560001',
-    timezone: 'Asia/Kolkata (IST)',
-    currency: 'INR (₹)',
-    numberOfBranches: 1,
-    organizationsCount: 1,
-    usersCount: 1,
-    adminName: 'Apex',
-    adminEmail: 'apex@gmail.com',
-    adminDesignation: 'Super Administrator',
-    status: 'ACTIVE',
-    createdDate: '2026-09-17',
-    updatedDate: '2026-09-17',
-    description: 'Primary Calibration Laboratory Facility',
-  },
-  {
-    id: 'ten-kjhgfd',
-    name: 'kjhgfd',
-    code: 'LKJHGFDSX',
-    tenantType: 'Enterprise',
-    registrationNumber: 'kjhgtcvghjkl',
-    gstNumber: 'AMERFGUJKOPLMNB',
-    contactEmail: 'apex@gmail.com',
-    contactPhone: '8529637419',
-    addressLine1: 'lkjhgfcvgbhnjmkl, hgfghj',
-    city: 'Bangalore',
-    state: 'Karnataka',
-    country: 'India',
-    pincode: '560001',
-    timezone: 'Asia/Kolkata (IST)',
-    currency: 'INR (₹)',
-    numberOfBranches: 1,
-    organizationsCount: 1,
-    usersCount: 1,
-    adminName: 'Apex Admin',
-    adminEmail: 'apex@gmail.com',
-    adminDesignation: 'Super Administrator',
-    status: 'ACTIVE',
-    createdDate: '2026-09-17',
-    updatedDate: '2026-09-17',
-  },
-];
+export const initialTenants: Tenant[] = [];
 
-export const initialOrganizations: Organization[] = [
-  {
-    id: 'org-456-1',
-    tenantId: 'ten-1789623527736',
-    companyName: 'org 1',
-    companyCode: '456-ORG',
-    companyType: 'Private Limited',
-    businessType: 'Calibration',
-    registrationNumber: 'uytfdsfghj',
-    gstNumber: 'ZXCA5DQWERGBUKM',
-    companyEmail: 'apex@gmail.com',
-    companyPhone: '8574961235',
-    addressLine1: 'kjhgfd, lijhgf, lkjhgv',
-    city: 'Bangalore',
-    state: 'Karnataka',
-    country: 'India',
-    pincode: '560001',
-    timezone: 'Asia/Kolkata (IST)',
-    currency: 'INR (₹)',
-    numberOfBranches: 1,
-    numberOfWarehouses: 1,
-    adminName: 'Apex',
-    adminEmail: 'apex@gmail.com',
-    adminDesignation: 'Laboratory Director',
-    status: 'ACTIVE',
-    createdDate: '2026-09-17',
-    usersCount: 1,
-  },
-  {
-    id: 'org-kjhgfd-1',
-    tenantId: 'ten-kjhgfd',
-    companyName: 'Test Organisation',
-    companyCode: 'LKJ-ORG',
-    companyType: 'Private Limited',
-    businessType: 'Calibration',
-    registrationNumber: 'kjhgtcvghjkl',
-    gstNumber: 'AMERFGUJKOPLMNB',
-    companyEmail: 'apex@gmail.com',
-    companyPhone: '8529637419',
-    addressLine1: 'lkjhgfcvgbhnjmkl, hgfghj',
-    city: 'Bangalore',
-    state: 'Karnataka',
-    country: 'India',
-    pincode: '560001',
-    timezone: 'Asia/Kolkata (IST)',
-    currency: 'INR (₹)',
-    numberOfBranches: 1,
-    numberOfWarehouses: 1,
-    adminName: 'Apex Admin',
-    adminEmail: 'apex@gmail.com',
-    adminDesignation: 'Quality Head',
-    status: 'ACTIVE',
-    createdDate: '2026-09-17',
-    usersCount: 1,
-  },
-];
+export const initialOrganizations: Organization[] = [];
 
 export const initialRoles: Role[] = [
   {
@@ -345,7 +236,7 @@ export const initialDeliveries: DeliveryRecord[] = [];
 export const initialAuditLogs: AuditLogEntry[] = [];
 export const initialDueList: CalibrationDueItem[] = [];
 
-const STORAGE_KEY = 'ccm_mock_data_store_v1';
+const STORAGE_KEY = 'ccm_mock_data_store_v2';
 
 function loadStoredData(): Partial<AppStore> | null {
   try {

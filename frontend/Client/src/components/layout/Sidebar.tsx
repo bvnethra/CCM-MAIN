@@ -82,12 +82,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse })
           permission: PERMISSION_CODES.ROLE_VIEW,
         },
         {
-          title: 'Permissions',
-          path: '/admin/permissions',
-          icon: <KeyRound className="w-4 h-4" />,
-          permission: PERMISSION_CODES.PERMISSION_VIEW,
-        },
-        {
           title: 'Audit Logs',
           path: '/admin/audit-logs',
           icon: <History className="w-4 h-4" />,
@@ -124,12 +118,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse })
           path: '/admin/roles',
           icon: <ShieldAlert className="w-4 h-4" />,
           permission: PERMISSION_CODES.ROLE_VIEW,
-        },
-        {
-          title: 'Permissions',
-          path: '/admin/permissions',
-          icon: <KeyRound className="w-4 h-4" />,
-          permission: PERMISSION_CODES.PERMISSION_VIEW,
         },
         {
           title: 'Audit Logs',

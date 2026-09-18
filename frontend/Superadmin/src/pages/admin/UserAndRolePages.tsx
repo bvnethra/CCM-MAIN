@@ -19,6 +19,14 @@ import {
   Save,
   Building2,
   UserCheck,
+  ChevronDown,
+  ChevronUp,
+  Sliders,
+  Search,
+  Sparkles,
+  RotateCcw,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { User, UserFormData } from '../../types/user';
 import { Role } from '../../types/role';
@@ -34,7 +42,7 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { DeleteModal } from '../../components/modals/AppModals';
 import { TextInput, SelectInput, PasswordInput, Textarea } from '../../components/forms/FormControls';
 import { useNotification } from '../../context/NotificationContext';
-import { MODULES_METADATA, MODULES_PERMISSIONS, ALL_PERMISSION_CODES } from '../../constants/permissions';
+import { MODULES_METADATA, MODULES_PERMISSIONS, ALL_PERMISSION_CODES, DEFAULT_ROLE_PERMISSIONS } from '../../constants/permissions';
 
 export const UserListPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -230,6 +238,42 @@ export const AddUserPage: React.FC = () => {
     confirmPassword: '',
   });
 
+  const [customPermissions, setCustomPermissions] = useState<string[] | null>(null);
+  const [showPermissionsMatrix, setShowPermissionsMatrix] = useState<boolean>(true);
+  const [showCustomMatrix, setShowCustomMatrix] = useState<boolean>(false);
+
+  const selectedRole = useMemo(() => {
+    return availableRoles.find((r) => r.id === formData.roleId);
+  }, [availableRoles, formData.roleId]);
+
+  const effectivePermissions = useMemo(() => {
+    if (customPermissions !== null) return customPermissions;
+    if (!selectedRole) return [];
+    const roleCode = selectedRole.code || selectedRole.name.toUpperCase().replace(/\s+/g, '_');
+    return DEFAULT_ROLE_PERMISSIONS[roleCode] || selectedRole.permissions || ALL_PERMISSION_CODES;
+  }, [customPermissions, selectedRole]);
+
+  const [selectedModuleFilter, setSelectedModuleFilter] = useState<string>('all');
+  const [permissionSearchQuery, setPermissionSearchQuery] = useState<string>('');
+  const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
+
+  const filteredModules = useMemo(() => {
+    return MODULES_PERMISSIONS.filter((module) => {
+      if (selectedModuleFilter !== 'all' && module.id !== selectedModuleFilter) {
+        return false;
+      }
+      if (permissionSearchQuery.trim()) {
+        const query = permissionSearchQuery.toLowerCase();
+        const nameMatch = module.name.toLowerCase().includes(query);
+        const permMatch = module.permissions.some(
+          (p) => p.label.toLowerCase().includes(query) || p.code.toLowerCase().includes(query)
+        );
+        return nameMatch || permMatch;
+      }
+      return true;
+    });
+  }, [selectedModuleFilter, permissionSearchQuery]);
+
   useEffect(() => {
     Promise.all([
       roleService.getAll(),
@@ -354,16 +398,41 @@ export const AddUserPage: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               placeholder="+91 98765 43210"
             />
-            <SelectInput
-              label="Security Role (RBAC)"
-              required
-              value={formData.roleId}
-              onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
-              options={availableRoles.map((r) => ({
-                value: r.id,
-                label: r.name,
-              }))}
-            />
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-700">
+                  Security Role (RBAC) <span className="text-rose-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/roles/new')}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-700 bg-sky-50 hover:bg-sky-100 px-2.5 py-0.5 rounded-lg border border-sky-200 transition cursor-pointer"
+                  title="Configure custom role on separate page"
+                >
+                  <Sliders className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Custom Roles</span>
+                </button>
+              </div>
+              <select
+                value={formData.roleId}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'CREATE_NEW_ROLE') {
+                    navigate('/admin/roles/new');
+                  } else {
+                    setFormData({ ...formData, roleId: val });
+                  }
+                }}
+                className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl transition-all text-slate-800 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 shadow-2xs cursor-pointer"
+              >
+                {availableRoles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+                <option value="CREATE_NEW_ROLE">+ Create Custom Role (Separate Page)...</option>
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -430,6 +499,8 @@ export const AddUserPage: React.FC = () => {
               { value: 'SUSPENDED', label: 'Suspended' },
             ]}
           />
+
+
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
             <button
