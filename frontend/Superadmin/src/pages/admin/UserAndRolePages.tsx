@@ -251,6 +251,9 @@ export const AddUserPage: React.FC = () => {
   const [customPermissions, setCustomPermissions] = useState<string[] | null>(null);
   const [showPermissionsMatrix, setShowPermissionsMatrix] = useState<boolean>(true);
   const [showCustomMatrix, setShowCustomMatrix] = useState<boolean>(false);
+  const [showEditPermissionsModal, setShowEditPermissionsModal] = useState<boolean>(false);
+  const [editingPermissions, setEditingPermissions] = useState<string[]>([]);
+  const [modalSearchQuery, setModalSearchQuery] = useState<string>('');
 
   const selectedRole = useMemo(() => {
     return availableRoles.find((r) => r.id === formData.roleId);
@@ -413,15 +416,30 @@ export const AddUserPage: React.FC = () => {
                 <label className="text-xs font-semibold text-slate-700">
                   Security Role (RBAC) <span className="text-rose-500">*</span>
                 </label>
-                <button
-                  type="button"
-                  onClick={() => navigate('/admin/roles/new')}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-700 bg-sky-50 hover:bg-sky-100 px-2.5 py-0.5 rounded-lg border border-sky-200 transition cursor-pointer"
-                  title="Configure custom role on separate page"
-                >
-                  <Sliders className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Custom Roles</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const current = customPermissions !== null ? customPermissions : (selectedRole?.permissions || ALL_PERMISSION_CODES);
+                      setEditingPermissions([...current]);
+                      setShowEditPermissionsModal(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-0.5 rounded-lg border border-amber-200 transition cursor-pointer"
+                    title="Add new permissions or remove options"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Edit Permissions</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/admin/roles/new')}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-700 bg-sky-50 hover:bg-sky-100 px-2.5 py-0.5 rounded-lg border border-sky-200 transition cursor-pointer"
+                    title="Configure custom role on separate page"
+                  >
+                    <Sliders className="w-3.5 h-3.5 text-sky-600" />
+                    <span>Custom Roles</span>
+                  </button>
+                </div>
               </div>
               <select
                 value={formData.roleId}
@@ -431,6 +449,7 @@ export const AddUserPage: React.FC = () => {
                     navigate('/admin/roles/new');
                   } else {
                     setFormData({ ...formData, roleId: val });
+                    setCustomPermissions(null);
                   }
                 }}
                 className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl transition-all text-slate-800 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 shadow-2xs cursor-pointer"
@@ -442,6 +461,18 @@ export const AddUserPage: React.FC = () => {
                 ))}
                 <option value="CREATE_NEW_ROLE">+ Create Custom Role (Separate Page)...</option>
               </select>
+              {customPermissions !== null && (
+                <div className="flex items-center justify-between text-[11px] text-amber-800 bg-amber-50 px-3 py-1 rounded-lg border border-amber-200 mt-1">
+                  <span>Custom overrides: <strong>{customPermissions.length} permissions active</strong></span>
+                  <button
+                    type="button"
+                    onClick={() => setCustomPermissions(null)}
+                    className="text-amber-700 hover:text-amber-900 underline font-semibold"
+                  >
+                    Reset to Default
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -531,6 +562,181 @@ export const AddUserPage: React.FC = () => {
           </div>
         </form>
       </div>
+
+      {/* Edit Role Permissions Modal */}
+      {showEditPermissionsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-8">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white px-6 py-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-400/30 text-sky-300 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                    <span>Edit Permissions — {selectedRole?.name || 'Assigned Security Role'}</span>
+                  </h2>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Add new permissions or remove existing options for this account.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEditPermissionsModal(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Controls & Search */}
+            <div className="p-6 space-y-4 max-h-[65vh] overflow-y-auto bg-slate-50/50">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
+                <div className="relative w-full sm:w-72">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="Search permissions..."
+                    value={modalSearchQuery}
+                    onChange={(e) => setModalSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-200">
+                    {editingPermissions.length} / {ALL_PERMISSION_CODES.length} Granted
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setEditingPermissions([...ALL_PERMISSION_CODES])}
+                    className="px-3 py-1 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl transition cursor-pointer"
+                  >
+                    Grant All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingPermissions([])}
+                    className="px-3 py-1 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition cursor-pointer"
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+
+              {/* Module Cards with Toggle Pills */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {MODULES_PERMISSIONS.map((module) => {
+                  const modulePermCodes = module.permissions.map((p) => p.code);
+                  const activeInModule = modulePermCodes.filter((c) => editingPermissions.includes(c)).length;
+                  const isFullyGranted = activeInModule === modulePermCodes.length;
+
+                  const filteredPerms = module.permissions.filter((p) => {
+                    if (!modalSearchQuery.trim()) return true;
+                    const q = modalSearchQuery.toLowerCase();
+                    return p.label.toLowerCase().includes(q) || p.code.toLowerCase().includes(q);
+                  });
+
+                  if (filteredPerms.length === 0 && modalSearchQuery.trim()) return null;
+
+                  return (
+                    <div key={module.id} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs space-y-3">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <span className="text-xs font-bold text-slate-900">{module.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono text-slate-400">
+                            ({activeInModule}/{module.permissions.length})
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isFullyGranted) {
+                                setEditingPermissions(editingPermissions.filter((c) => !(modulePermCodes as string[]).includes(c)));
+                              } else {
+                                const toAdd = (modulePermCodes as string[]).filter((c) => !editingPermissions.includes(c));
+                                setEditingPermissions([...editingPermissions, ...toAdd]);
+                              }
+                            }}
+                            className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 cursor-pointer"
+                          >
+                            {isFullyGranted ? 'Remove All' : 'Add All'}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {filteredPerms.map((p) => {
+                          const isGranted = editingPermissions.includes(p.code);
+                          return (
+                            <button
+                              key={p.code}
+                              type="button"
+                              onClick={() => {
+                                if (isGranted) {
+                                  setEditingPermissions(editingPermissions.filter((c) => c !== p.code));
+                                } else {
+                                  setEditingPermissions([...editingPermissions, p.code]);
+                                }
+                              }}
+                              className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition cursor-pointer flex items-center gap-1.5 ${
+                                isGranted
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 shadow-2xs hover:bg-emerald-100'
+                                  : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100 hover:text-slate-600'
+                              }`}
+                            >
+                              <span className={isGranted ? 'text-emerald-600 font-bold' : 'text-slate-300'}>
+                                {isGranted ? '✓' : '+'}
+                              </span>
+                              <span>{p.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-white px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomPermissions(null);
+                  setShowEditPermissionsModal(false);
+                  showToast('Permissions reset to default role setting', 'info');
+                }}
+                className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+              >
+                Reset to Role Defaults
+              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditPermissionsModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomPermissions([...editingPermissions]);
+                    setShowEditPermissionsModal(false);
+                    showToast('Updated permission overrides for user account', 'success');
+                  }}
+                  className="px-5 py-2 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-2xs transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Apply Permission Changes</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
