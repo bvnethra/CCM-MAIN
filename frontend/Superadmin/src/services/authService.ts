@@ -9,35 +9,70 @@ export interface LoginResponse {
 }
 
 const SYSTEM_ACCOUNTS: Record<string, { fullName: string; role: UserRole; roleName: string }> = {
+  'apex.superadmin@ccm.com': {
+    fullName: 'Apex Super Admin',
+    role: 'SUPER_ADMIN',
+    roleName: 'Super Administrator'
+  },
   'admin@apexmetrology.com': {
     fullName: 'Apex Super Admin',
     role: 'SUPER_ADMIN',
     roleName: 'Super Administrator'
+  },
+  'apex@gmail.com': {
+    fullName: 'Apex Administrator',
+    role: 'ADMIN',
+    roleName: 'Tenant Administrator'
   },
   'bvnethra2005@gmail.com': {
     fullName: 'Nethra BV (Admin)',
     role: 'ADMIN',
     roleName: 'System Administrator'
   },
-  'priya.s@apexmetrology.com': {
-    fullName: 'Priya S (Lab Tech)',
-    role: 'LAB_USER',
-    roleName: 'Calibration Engineer'
+  'apex.quality@gmail.com': {
+    fullName: 'Apex Quality Head',
+    role: 'APPROVER',
+    roleName: 'Quality Approver / Lab Director'
   },
-  'rajesh.k@apexmetrology.com': {
-    fullName: 'Rajesh K (Collection Agent)',
-    role: 'COLLECTION_AGENT',
-    roleName: 'Field Collection Agent'
+  'vikram.m@apexmetrology.com': {
+    fullName: 'Dr. Vikram M (Approver)',
+    role: 'APPROVER',
+    roleName: 'Quality Approver'
+  },
+  'rajesh.commercial@apexmetrology.com': {
+    fullName: 'Rajesh Sharma',
+    role: 'COMMERCIAL_USER',
+    roleName: 'Commercial Manager'
   },
   'amit.v@apexmetrology.com': {
     fullName: 'Amit V (Commercial User)',
     role: 'COMMERCIAL_USER',
     roleName: 'Commercial Manager'
   },
-  'vikram.m@apexmetrology.com': {
-    fullName: 'Dr. Vikram M (Approver)',
-    role: 'APPROVER',
-    roleName: 'Quality Approver'
+  'priya.lab@apexmetrology.com': {
+    fullName: 'Dr. Priya Nambiar',
+    role: 'LAB_USER',
+    roleName: 'Calibration Lab Engineer'
+  },
+  'priya.s@apexmetrology.com': {
+    fullName: 'Priya S (Lab Tech)',
+    role: 'LAB_USER',
+    roleName: 'Calibration Engineer'
+  },
+  'suresh.field@apexmetrology.com': {
+    fullName: 'Suresh Kumar',
+    role: 'COLLECTION_AGENT',
+    roleName: 'Field Collection Agent'
+  },
+  'rajesh.k@apexmetrology.com': {
+    fullName: 'Rajesh K (Collection Agent)',
+    role: 'COLLECTION_AGENT',
+    roleName: 'Field Collection Agent'
+  },
+  'karthik.dispatch@apexmetrology.com': {
+    fullName: 'Karthik Raja',
+    role: 'DISPATCH_USER',
+    roleName: 'Dispatch & Logistics Officer'
   }
 };
 
