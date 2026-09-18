@@ -9,7 +9,9 @@
 
 -- Helper: Check if current authenticated caller has platform Super Administrator privileges
 CREATE OR REPLACE FUNCTION is_super_admin()
-RETURNS BOOLEAN AS $$
+RETURNS BOOLEAN
+SET search_path = public, pg_temp
+AS $$
 BEGIN
     -- Check JWT metadata claims
     IF (COALESCE(auth.jwt() ->> 'role', '') = 'super_admin' OR 
@@ -33,25 +35,33 @@ $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 -- Helper: Get current user's assigned tenant_id
 CREATE OR REPLACE FUNCTION current_user_tenant_id()
-RETURNS UUID AS $$
+RETURNS UUID
+SET search_path = public, pg_temp
+AS $$
     SELECT tenant_id FROM user_profiles WHERE auth_user_id = auth.uid() LIMIT 1;
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 
 -- Helper: Get current user's assigned organization_id
 CREATE OR REPLACE FUNCTION current_user_organization_id()
-RETURNS UUID AS $$
+RETURNS UUID
+SET search_path = public, pg_temp
+AS $$
     SELECT organization_id FROM user_profiles WHERE auth_user_id = auth.uid() LIMIT 1;
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 
 -- Helper: Get current user's user_profiles.id
 CREATE OR REPLACE FUNCTION current_user_profile_id()
-RETURNS UUID AS $$
+RETURNS UUID
+SET search_path = public, pg_temp
+AS $$
     SELECT id FROM user_profiles WHERE auth_user_id = auth.uid() LIMIT 1;
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 
 -- Helper: Check if user holds a specific canonical permission code
 CREATE OR REPLACE FUNCTION current_user_has_permission(p_code TEXT)
-RETURNS BOOLEAN AS $$
+RETURNS BOOLEAN
+SET search_path = public, pg_temp
+AS $$
 BEGIN
     IF is_super_admin() THEN
         RETURN TRUE;

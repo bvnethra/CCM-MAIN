@@ -12,7 +12,9 @@
     "start:api": "npm --prefix backend/Superadmin run start:api",
     "start:api:superadmin": "npm --prefix backend/Superadmin run start:api",
     "start:api:client": "npm --prefix backend/Client run start:api",
-    "db:apply": "node apply-schema.mjs"
+    "db:apply": "node apply-schema.mjs",
+    "test:rls": "node test-rls-matrix.mjs",
+    "test": "npm run test:rls"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
