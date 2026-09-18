@@ -873,8 +873,18 @@ export const RoleFormPage: React.FC = () => {
   );
   const [showAddColumnModal, setShowAddColumnModal] = useState<boolean>(false);
   const [newColumnName, setNewColumnName] = useState<string>('');
-  const [newActionLabel, setNewActionLabel] = useState<string>('');
-  const [newActionCode, setNewActionCode] = useState<string>('');
+  const [newColumnPermissions, setNewColumnPermissions] = useState<Array<{ label: string; code: string }>>([
+    { label: '', code: '' },
+  ]);
+
+  // Editing specific module permissions
+  const [editingModule, setEditingModule] = useState<{
+    id: string;
+    name: string;
+    permissions: Array<{ code: string; label: string; description?: string; action?: string }>;
+  } | null>(null);
+  const [editingModuleName, setEditingModuleName] = useState<string>('');
+  const [moduleEditNewPerm, setModuleEditNewPerm] = useState<{ label: string; code: string }>({ label: '', code: '' });
 
   useEffect(() => {
     if (isEdit && id) {
@@ -937,7 +947,7 @@ export const RoleFormPage: React.FC = () => {
         <button
           type="button"
           onClick={() => navigate('/admin/roles')}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Roles Matrix
@@ -956,7 +966,11 @@ export const RoleFormPage: React.FC = () => {
           </div>
           <button
             type="button"
-            onClick={() => setShowAddColumnModal(true)}
+            onClick={() => {
+              setNewColumnName('');
+              setNewColumnPermissions([{ label: '', code: '' }]);
+              setShowAddColumnModal(true);
+            }}
             className="inline-flex items-center gap-1.5 px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-semibold shadow-2xs transition cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -982,7 +996,7 @@ export const RoleFormPage: React.FC = () => {
           </div>
 
           <div className="space-y-4 pt-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-3">
                 <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
                   Module Permissions Matrix
@@ -991,48 +1005,11 @@ export const RoleFormPage: React.FC = () => {
                   {selectedPermissions.length} of {totalPossiblePermissions} Granted
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const allCodes = modulesList.flatMap((m) => m.permissions.map((p) => p.code));
-                    setSelectedPermissions([...allCodes]);
-                  }}
-                  className="text-xs font-medium px-3 py-1 bg-white border border-slate-200 hover:border-sky-300 hover:text-sky-600 rounded-lg shadow-2xs transition cursor-pointer"
-                >
-                  Select All ({totalPossiblePermissions})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedPermissions([])}
-                  className="text-xs font-medium px-3 py-1 bg-white border border-slate-200 hover:border-rose-300 hover:text-rose-600 rounded-lg shadow-2xs transition cursor-pointer"
-                >
-                  Clear All
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAddColumnModal(true)}
-                  className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 rounded-lg shadow-2xs transition cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>+ Column</span>
-                </button>
-              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {modulesList.map((mod) => {
                 const allModuleCodes: string[] = mod.permissions.map((p) => p.code as string);
-                const isAllSelected = allModuleCodes.length > 0 && allModuleCodes.every((c) => selectedPermissions.includes(c));
-
-                const toggleAllModule = () => {
-                  if (isAllSelected) {
-                    setSelectedPermissions(selectedPermissions.filter((c) => !allModuleCodes.includes(c)));
-                  } else {
-                    const toAdd = allModuleCodes.filter((c) => !selectedPermissions.includes(c));
-                    setSelectedPermissions([...selectedPermissions, ...toAdd]);
-                  }
-                };
 
                 return (
                   <div
@@ -1046,13 +1023,23 @@ export const RoleFormPage: React.FC = () => {
                           ({mod.permissions.filter((p) => selectedPermissions.includes(p.code)).length}/{mod.permissions.length})
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
-                          onClick={toggleAllModule}
-                          className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 hover:underline cursor-pointer"
+                          onClick={() => {
+                            setEditingModule({
+                              id: mod.id,
+                              name: mod.name,
+                              permissions: [...mod.permissions],
+                            });
+                            setEditingModuleName(mod.name);
+                            setModuleEditNewPerm({ label: '', code: '' });
+                          }}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-2 py-0.5 rounded-lg transition cursor-pointer"
+                          title="Edit module name & permissions"
                         >
-                          {isAllSelected ? 'Deselect All' : 'Select All'}
+                          <Edit2 className="w-3 h-3" />
+                          <span>Edit</span>
                         </button>
                         <button
                           type="button"
@@ -1130,14 +1117,14 @@ export const RoleFormPage: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate('/admin/roles')}
-              className="px-4 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+              className="px-4 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-xs transition disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-xs transition disabled:opacity-50 cursor-pointer"
             >
               <Save className="w-4 h-4" />
               <span>{isEdit ? 'Save Changes' : 'Create Custom Role'}</span>
@@ -1146,10 +1133,186 @@ export const RoleFormPage: React.FC = () => {
         </form>
       </div>
 
-      {/* Add New Permission Column Modal */}
+      {/* Edit Specific Module Permissions Modal */}
+      {editingModule && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-sky-600" />
+                <span>Edit Module: {editingModule.name}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingModule(null)}
+                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+              <TextInput
+                label="Module Name"
+                required
+                value={editingModuleName}
+                onChange={(e) => setEditingModuleName(e.target.value)}
+                placeholder="Module title"
+              />
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                  Permissions in this module ({editingModule.permissions.length})
+                </label>
+                {editingModule.permissions.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic">No permissions in this module yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {editingModule.permissions.map((perm, idx) => (
+                      <div
+                        key={perm.code || idx}
+                        className="flex items-center justify-between gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200"
+                      >
+                        <div className="flex-1 space-y-1">
+                          <input
+                            type="text"
+                            value={perm.label}
+                            onChange={(e) => {
+                              const updated = editingModule.permissions.map((p, i) =>
+                                i === idx ? { ...p, label: e.target.value } : p
+                              );
+                              setEditingModule({ ...editingModule, permissions: updated });
+                            }}
+                            className="w-full text-xs font-semibold text-slate-800 bg-white border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:border-sky-500"
+                            placeholder="Action Label"
+                          />
+                          <input
+                            type="text"
+                            value={perm.code}
+                            onChange={(e) => {
+                              const updated = editingModule.permissions.map((p, i) =>
+                                i === idx ? { ...p, code: e.target.value } : p
+                              );
+                              setEditingModule({ ...editingModule, permissions: updated });
+                            }}
+                            className="w-full text-[11px] font-mono text-slate-500 bg-white border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:border-sky-500"
+                            placeholder="Permission Code (e.g. module.view)"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = editingModule.permissions.filter((_, i) => i !== idx);
+                            setEditingModule({ ...editingModule, permissions: updated });
+                          }}
+                          className="text-slate-400 hover:text-rose-600 transition p-1.5 rounded-lg hover:bg-rose-50 shrink-0 cursor-pointer"
+                          title="Remove permission"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Add New Permission row inside module editor */}
+              <div className="p-3 bg-sky-50/70 border border-sky-100 rounded-2xl space-y-2">
+                <label className="text-xs font-bold text-sky-900 block">Add New Permission to Module</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Action Label (e.g. Export Records)"
+                    value={moduleEditNewPerm.label}
+                    onChange={(e) =>
+                      setModuleEditNewPerm({
+                        ...moduleEditNewPerm,
+                        label: e.target.value,
+                        code:
+                          moduleEditNewPerm.code ||
+                          `${editingModuleName.toLowerCase().replace(/[^a-z0-9]/g, '')}.${e.target.value
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]/g, '')}`,
+                      })
+                    }
+                    className="text-xs bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-sky-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Code (e.g. tenant.export)"
+                    value={moduleEditNewPerm.code}
+                    onChange={(e) => setModuleEditNewPerm({ ...moduleEditNewPerm, code: e.target.value })}
+                    className="text-xs font-mono bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!moduleEditNewPerm.label.trim()) {
+                      showToast('Permission label is required', 'warning');
+                      return;
+                    }
+                    const newCode = moduleEditNewPerm.code.trim() || `perm.${Date.now()}`;
+                    setEditingModule({
+                      ...editingModule,
+                      permissions: [
+                        ...editingModule.permissions,
+                        { label: moduleEditNewPerm.label.trim(), code: newCode },
+                      ],
+                    });
+                    setModuleEditNewPerm({ label: '', code: '' });
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-sky-700 bg-white border border-sky-200 hover:bg-sky-100 rounded-xl transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Permission Action</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setEditingModule(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!editingModuleName.trim()) {
+                    showToast('Module name is required', 'warning');
+                    return;
+                  }
+                  const updatedMods = modulesList.map((m) => {
+                    if (m.id === editingModule.id) {
+                      return {
+                        ...m,
+                        name: editingModuleName.trim(),
+                        permissions: editingModule.permissions,
+                      };
+                    }
+                    return m;
+                  });
+                  setModulesList(updatedMods);
+                  setEditingModule(null);
+                  showToast(`Updated module permissions: ${editingModuleName.trim()}`, 'success');
+                }}
+                className="px-5 py-2 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-2xs transition cursor-pointer flex items-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>Save Module Changes</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add New Permission Column Modal (Supports Multiple Permissions) */}
       {showAddColumnModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-6 space-y-5">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-6 space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Plus className="w-5 h-5 text-sky-600" />
@@ -1164,27 +1327,79 @@ export const RoleFormPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
               <TextInput
-                label="Column / Module Name"
+                label="Column / Module Name *"
                 required
                 value={newColumnName}
                 onChange={(e) => setNewColumnName(e.target.value)}
                 placeholder="e.g. Audit & Compliance"
               />
-              <TextInput
-                label="Initial Permission Action Label"
-                required
-                value={newActionLabel}
-                onChange={(e) => setNewActionLabel(e.target.value)}
-                placeholder="e.g. View Audit Logs"
-              />
-              <TextInput
-                label="Permission Code"
-                value={newActionCode}
-                onChange={(e) => setNewActionCode(e.target.value)}
-                placeholder="e.g. audit.view"
-              />
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Permission Actions ({newColumnPermissions.length})
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setNewColumnPermissions([...newColumnPermissions, { label: '', code: '' }])}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:text-sky-700 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Action Field</span>
+                  </button>
+                </div>
+
+                {newColumnPermissions.map((permRow, index) => (
+                  <div
+                    key={index}
+                    className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 relative"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-slate-500">Action #{index + 1}</span>
+                      {newColumnPermissions.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setNewColumnPermissions(newColumnPermissions.filter((_, i) => i !== index))}
+                          className="text-slate-400 hover:text-rose-600 transition p-1 rounded cursor-pointer"
+                          title="Remove action field"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <TextInput
+                        label="Permission Action Label *"
+                        value={permRow.label}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const updated = [...newColumnPermissions];
+                          const autoCode =
+                            updated[index].code ||
+                            `${(newColumnName || 'custom').toLowerCase().replace(/[^a-z0-9]/g, '')}.${val
+                              .toLowerCase()
+                              .replace(/[^a-z0-9]/g, '')}`;
+                          updated[index] = { ...updated[index], label: val, code: autoCode };
+                          setNewColumnPermissions(updated);
+                        }}
+                        placeholder="e.g. View Audit Logs"
+                      />
+                      <TextInput
+                        label="Permission Code"
+                        value={permRow.code}
+                        onChange={(e) => {
+                          const updated = [...newColumnPermissions];
+                          updated[index] = { ...updated[index], code: e.target.value };
+                          setNewColumnPermissions(updated);
+                        }}
+                        placeholder="e.g. audit.view"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
@@ -1203,27 +1418,39 @@ export const RoleFormPage: React.FC = () => {
                     return;
                   }
                   const modId = `custom-mod-${Date.now()}`;
-                  const actionCode = newActionCode.trim() || `custom.${Date.now()}`;
-                  const actionLabel = newActionLabel.trim() || 'View Custom Feature';
+                  const validPerms = newColumnPermissions
+                    .filter((p) => p.label.trim() || p.code.trim())
+                    .map((p, idx) => ({
+                      code: p.code.trim() || `custom.${Date.now()}.${idx}`,
+                      label: p.label.trim() || `Action ${idx + 1}`,
+                      description: 'Custom capability',
+                      action: 'VIEW',
+                    }));
+
+                  const finalPerms =
+                    validPerms.length > 0
+                      ? validPerms
+                      : [
+                          {
+                            code: `custom.${Date.now()}`,
+                            label: 'View Module',
+                            description: 'Custom capability',
+                            action: 'VIEW',
+                          },
+                        ];
+
                   const newMod = {
                     id: modId,
                     name: newColumnName.trim(),
-                    permissions: [
-                      {
-                        code: actionCode,
-                        label: actionLabel,
-                        description: 'Custom capability',
-                        action: 'VIEW',
-                      },
-                    ],
+                    permissions: finalPerms,
                   };
+
                   setModulesList([...modulesList, newMod]);
-                  setSelectedPermissions([...selectedPermissions, actionCode]);
+                  setSelectedPermissions([...selectedPermissions, ...finalPerms.map((p) => p.code)]);
                   setShowAddColumnModal(false);
                   setNewColumnName('');
-                  setNewActionLabel('');
-                  setNewActionCode('');
-                  showToast(`Added permission column: ${newColumnName.trim()}`, 'success');
+                  setNewColumnPermissions([{ label: '', code: '' }]);
+                  showToast(`Added permission column "${newColumnName.trim()}" with ${finalPerms.length} action(s)`, 'success');
                 }}
                 className="px-5 py-2 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-2xs transition cursor-pointer flex items-center gap-1.5"
               >
