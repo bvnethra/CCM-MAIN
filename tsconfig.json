@@ -18,6 +18,8 @@
   },
   "include": [
     "frontend/Superadmin/src/**/*",
-    "backend/src/**/*"
+    "frontend/Client/src/**/*",
+    "backend/Superadmin/src/**/*",
+    "backend/Client/src/**/*"
   ]
 }

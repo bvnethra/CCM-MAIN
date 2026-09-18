@@ -1,0 +1,27 @@
+{
+  "name": "ccm-backend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start:api": "tsx src/server.ts",
+    "dev:api": "tsx watch src/server.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "@supabase/supabase-js": "^2.49.1",
+    "dotenv": "^16.4.5",
+    "hono": "^4.13.8",
+    "jose": "^6.2.12",
+    "pg": "^8.11.5",
+    "puppeteer": "^25.11.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "@types/pg": "^8.11.11",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "wrangler": "^3.107.2"
+  }
+}

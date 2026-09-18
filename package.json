@@ -9,7 +9,9 @@
     "build": "npm --prefix frontend/Superadmin install && npm --prefix frontend/Superadmin run build && npm --prefix frontend/Client install && npm --prefix frontend/Client run build && node --input-type=module -e \"import fs from 'fs'; fs.cpSync('frontend/Client/dist', 'frontend/Superadmin/dist/client', {recursive: true});\"",
     "build:superadmin": "npm --prefix frontend/Superadmin install && npm --prefix frontend/Superadmin run build",
     "build:client": "npm --prefix frontend/Client install && npm --prefix frontend/Client run build",
-    "start:api": "npm --prefix backend run start:api",
+    "start:api": "npm --prefix backend/Superadmin run start:api",
+    "start:api:superadmin": "npm --prefix backend/Superadmin run start:api",
+    "start:api:client": "npm --prefix backend/Client run start:api",
     "db:apply": "node apply-schema.mjs"
   },
   "dependencies": {
