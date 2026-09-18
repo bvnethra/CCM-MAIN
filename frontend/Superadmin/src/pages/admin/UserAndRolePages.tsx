@@ -856,6 +856,26 @@ export const RoleFormPage: React.FC = () => {
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
+  // Dynamic modules list state allowing adding and deleting columns
+  const [modulesList, setModulesList] = useState<
+    Array<{ id: string; name: string; permissions: Array<{ code: string; label: string; description?: string; action?: string }> }>
+  >(() =>
+    MODULES_PERMISSIONS.map((m) => ({
+      id: m.id,
+      name: m.name,
+      permissions: m.permissions.map((p) => ({
+        code: p.code as string,
+        label: p.label as string,
+        description: (p as any).description || '',
+        action: (p as any).action || '',
+      })),
+    }))
+  );
+  const [showAddColumnModal, setShowAddColumnModal] = useState<boolean>(false);
+  const [newColumnName, setNewColumnName] = useState<string>('');
+  const [newActionLabel, setNewActionLabel] = useState<string>('');
+  const [newActionCode, setNewActionCode] = useState<string>('');
+
   useEffect(() => {
     if (isEdit && id) {
       roleService.getById(id).then((role) => {
@@ -909,6 +929,8 @@ export const RoleFormPage: React.FC = () => {
     }
   };
 
+  const totalPossiblePermissions = modulesList.reduce((acc, m) => acc + m.permissions.length, 0);
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -923,13 +945,23 @@ export const RoleFormPage: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-8 shadow-subtle space-y-6">
-        <div className="border-b border-slate-100 pb-4">
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            {isEdit ? 'Configure Role Matrix' : 'Create Custom Security Role'}
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Specify permissions for viewing, creating, approving, and signing commercial calibration operations.
-          </p>
+        <div className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              {isEdit ? 'Configure Role Matrix' : 'Create Custom Security Role'}
+            </h1>
+            <p className="text-xs text-slate-500 mt-1">
+              Specify permissions for viewing, creating, approving, and signing commercial calibration operations.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAddColumnModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-semibold shadow-2xs transition cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Permission Column</span>
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -956,31 +988,42 @@ export const RoleFormPage: React.FC = () => {
                   Module Permissions Matrix
                 </h3>
                 <span className="font-mono text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">
-                  {selectedPermissions.length} of {ALL_PERMISSION_CODES.length} Granted
+                  {selectedPermissions.length} of {totalPossiblePermissions} Granted
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setSelectedPermissions([...ALL_PERMISSION_CODES])}
-                  className="text-xs font-medium px-3 py-1 bg-white border border-slate-200 hover:border-sky-300 hover:text-sky-600 rounded-lg shadow-2xs transition"
+                  onClick={() => {
+                    const allCodes = modulesList.flatMap((m) => m.permissions.map((p) => p.code));
+                    setSelectedPermissions([...allCodes]);
+                  }}
+                  className="text-xs font-medium px-3 py-1 bg-white border border-slate-200 hover:border-sky-300 hover:text-sky-600 rounded-lg shadow-2xs transition cursor-pointer"
                 >
-                  Select All ({ALL_PERMISSION_CODES.length})
+                  Select All ({totalPossiblePermissions})
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedPermissions([])}
-                  className="text-xs font-medium px-3 py-1 bg-white border border-slate-200 hover:border-rose-300 hover:text-rose-600 rounded-lg shadow-2xs transition"
+                  className="text-xs font-medium px-3 py-1 bg-white border border-slate-200 hover:border-rose-300 hover:text-rose-600 rounded-lg shadow-2xs transition cursor-pointer"
                 >
                   Clear All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddColumnModal(true)}
+                  className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 rounded-lg shadow-2xs transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Column</span>
                 </button>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {MODULES_PERMISSIONS.map((mod) => {
+              {modulesList.map((mod) => {
                 const allModuleCodes: string[] = mod.permissions.map((p) => p.code as string);
-                const isAllSelected = allModuleCodes.every((c) => selectedPermissions.includes(c));
+                const isAllSelected = allModuleCodes.length > 0 && allModuleCodes.every((c) => selectedPermissions.includes(c));
 
                 const toggleAllModule = () => {
                   if (isAllSelected) {
@@ -994,7 +1037,7 @@ export const RoleFormPage: React.FC = () => {
                 return (
                   <div
                     key={mod.id}
-                    className="border border-slate-200/90 rounded-2xl p-4 bg-slate-50/50 hover:bg-slate-50 transition space-y-3"
+                    className="border border-slate-200/90 rounded-2xl p-4 bg-slate-50/50 hover:bg-slate-50 transition space-y-3 relative group"
                   >
                     <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5">
                       <div className="flex items-center gap-2">
@@ -1003,40 +1046,77 @@ export const RoleFormPage: React.FC = () => {
                           ({mod.permissions.filter((p) => selectedPermissions.includes(p.code)).length}/{mod.permissions.length})
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={toggleAllModule}
-                        className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 hover:underline"
-                      >
-                        {isAllSelected ? 'Deselect All' : 'Select All'}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={toggleAllModule}
+                          className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 hover:underline cursor-pointer"
+                        >
+                          {isAllSelected ? 'Deselect All' : 'Select All'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModulesList(modulesList.filter((m) => m.id !== mod.id));
+                            setSelectedPermissions(selectedPermissions.filter((c) => !allModuleCodes.includes(c)));
+                            showToast(`Deleted permission column: ${mod.name}`, 'info');
+                          }}
+                          className="text-slate-400 hover:text-rose-600 transition p-1 cursor-pointer rounded-lg hover:bg-rose-50"
+                          title="Delete this permission column"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-2 text-xs">
                       {mod.permissions.map((p) => {
                         const isChecked = selectedPermissions.includes(p.code);
                         return (
-                          <label
+                          <div
                             key={p.code}
-                            className={`flex items-start gap-2.5 p-2 rounded-xl border transition cursor-pointer select-none ${
+                            className={`flex items-start justify-between gap-2.5 p-2 rounded-xl border transition select-none ${
                               isChecked
                                 ? 'bg-sky-50/90 border-sky-200 text-sky-950 shadow-2xs'
                                 : 'bg-white border-slate-200/70 hover:border-slate-300 text-slate-700'
                             }`}
                           >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => togglePermission(p.code)}
-                              className="mt-0.5 rounded text-sky-600 focus:ring-sky-500 w-4 h-4 cursor-pointer"
-                            />
-                            <div className="flex-1">
-                              <span className="font-semibold block text-xs">
-                                {p.label}
-                              </span>
-                              <span className="text-[10px] text-slate-400 font-mono block mt-0.5">{p.code}</span>
-                            </div>
-                          </label>
+                            <label className="flex items-start gap-2.5 flex-1 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => togglePermission(p.code)}
+                                className="mt-0.5 rounded text-sky-600 focus:ring-sky-500 w-4 h-4 cursor-pointer"
+                              />
+                              <div className="flex-1">
+                                <span className="font-semibold block text-xs">
+                                  {p.label}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-mono block mt-0.5">{p.code}</span>
+                              </div>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const updatedMods = modulesList.map((m) => {
+                                  if (m.id === mod.id) {
+                                    return {
+                                      ...m,
+                                      permissions: m.permissions.filter((item) => item.code !== p.code),
+                                    };
+                                  }
+                                  return m;
+                                });
+                                setModulesList(updatedMods);
+                                setSelectedPermissions(selectedPermissions.filter((c) => c !== p.code));
+                              }}
+                              className="text-slate-300 hover:text-rose-500 transition p-1 cursor-pointer shrink-0"
+                              title="Delete permission action"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
                         );
                       })}
                     </div>
@@ -1060,11 +1140,100 @@ export const RoleFormPage: React.FC = () => {
               className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-xs transition disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
-              <span>Save Role Matrix</span>
+              <span>{isEdit ? 'Save Changes' : 'Create Custom Role'}</span>
             </button>
           </div>
         </form>
       </div>
+
+      {/* Add New Permission Column Modal */}
+      {showAddColumnModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Plus className="w-5 h-5 text-sky-600" />
+                <span>Add New Permission Column</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAddColumnModal(false)}
+                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <TextInput
+                label="Column / Module Name"
+                required
+                value={newColumnName}
+                onChange={(e) => setNewColumnName(e.target.value)}
+                placeholder="e.g. Audit & Compliance"
+              />
+              <TextInput
+                label="Initial Permission Action Label"
+                required
+                value={newActionLabel}
+                onChange={(e) => setNewActionLabel(e.target.value)}
+                placeholder="e.g. View Audit Logs"
+              />
+              <TextInput
+                label="Permission Code"
+                value={newActionCode}
+                onChange={(e) => setNewActionCode(e.target.value)}
+                placeholder="e.g. audit.view"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowAddColumnModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!newColumnName.trim()) {
+                    showToast('Column name is required', 'warning');
+                    return;
+                  }
+                  const modId = `custom-mod-${Date.now()}`;
+                  const actionCode = newActionCode.trim() || `custom.${Date.now()}`;
+                  const actionLabel = newActionLabel.trim() || 'View Custom Feature';
+                  const newMod = {
+                    id: modId,
+                    name: newColumnName.trim(),
+                    permissions: [
+                      {
+                        code: actionCode,
+                        label: actionLabel,
+                        description: 'Custom capability',
+                        action: 'VIEW',
+                      },
+                    ],
+                  };
+                  setModulesList([...modulesList, newMod]);
+                  setSelectedPermissions([...selectedPermissions, actionCode]);
+                  setShowAddColumnModal(false);
+                  setNewColumnName('');
+                  setNewActionLabel('');
+                  setNewActionCode('');
+                  showToast(`Added permission column: ${newColumnName.trim()}`, 'success');
+                }}
+                className="px-5 py-2 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-2xs transition cursor-pointer flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Column</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
