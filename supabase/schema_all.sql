@@ -886,6 +886,28 @@ CREATE INDEX IF NOT EXISTS idx_approvals_status ON approvals(tenant_id, approval
 -- -----------------------------------------------------------------------------
 -- 21. ROW LEVEL SECURITY (RLS) & HELPER FUNCTIONS
 -- -----------------------------------------------------------------------------
+-- Helper: Check if current authenticated caller has platform Super Administrator privileges
+CREATE OR REPLACE FUNCTION is_super_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+    IF (COALESCE(auth.jwt() ->> 'role', '') = 'super_admin' OR 
+        COALESCE(auth.jwt() -> 'app_metadata' ->> 'role', '') IN ('SUPER_ADMIN', 'super_admin') OR
+        COALESCE(auth.jwt() -> 'user_metadata' ->> 'role', '') IN ('SUPER_ADMIN', 'super_admin')) THEN
+        RETURN TRUE;
+    END IF;
+
+    RETURN EXISTS (
+        SELECT 1 
+        FROM user_profiles up
+        JOIN user_roles ur ON ur.user_id = up.id
+        JOIN roles r ON r.id = ur.role_id
+        WHERE up.auth_user_id = auth.uid()
+          AND (r.code = 'SUPER_ADMIN' OR UPPER(r.name) = 'SUPER ADMINISTRATOR')
+          AND r.status = 'ACTIVE'
+    );
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
 CREATE OR REPLACE FUNCTION current_user_tenant_id()
 RETURNS UUID AS $$
     SELECT tenant_id FROM user_profiles WHERE auth_user_id = auth.uid() LIMIT 1;
@@ -900,6 +922,25 @@ CREATE OR REPLACE FUNCTION current_user_profile_id()
 RETURNS UUID AS $$
     SELECT id FROM user_profiles WHERE auth_user_id = auth.uid() LIMIT 1;
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION current_user_has_permission(p_code TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+    IF is_super_admin() THEN
+        RETURN TRUE;
+    END IF;
+
+    RETURN EXISTS (
+        SELECT 1
+        FROM user_profiles up
+        JOIN user_roles ur ON ur.user_id = up.id
+        JOIN role_permissions rp ON rp.role_id = ur.role_id
+        JOIN permissions p ON p.id = rp.permission_id
+        WHERE up.auth_user_id = auth.uid()
+          AND p.code = p_code
+    );
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;

@@ -58,6 +58,14 @@ async function run() {
       console.log('✅ RBAC matrix and designations migration applied successfully!');
     }
 
+    const rlsMigrationPath = path.join(process.cwd(), 'supabase', 'migrations', '064_enable_multitenant_rls.sql');
+    if (fs.existsSync(rlsMigrationPath)) {
+      console.log('\n🔒 Applying 064_enable_multitenant_rls.sql...');
+      const rlsSql = fs.readFileSync(rlsMigrationPath, 'utf8');
+      await client.query(rlsSql);
+      console.log('✅ Multi-Tenant RLS migration applied successfully!');
+    }
+
     console.log('\n🎉 ALL MIGRATIONS AND SEEDS APPLIED AUTOMATICALLY!\n');
   } catch (err) {
     console.error('\n❌ Error executing SQL script:', err.message);
