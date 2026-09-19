@@ -26,7 +26,7 @@ import { CalibrationRequest, RequestStatus, RequestPriority } from '../../types/
 import { requestService } from '../../services/requestService';
 import { quotationService, invoiceService, purchaseOrderService } from '../../services/commercialServices';
 import { dispatchService, signatureService, auditService } from '../../services/executionServices';
-import { itemService } from '../../services/clientService';
+import { itemService } from '../../services/itemService';
 import { DataTable, Column } from '../../components/common/DataTable';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { RequestWorkflowTracker } from '../../components/workflow/RequestWorkflowTracker';

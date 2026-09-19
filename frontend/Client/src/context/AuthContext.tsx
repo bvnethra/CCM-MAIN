@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '../types/user';
 import { Tenant } from '../types/tenant';
 import { Organization } from '../types/organization';
-import { authService, createUserForEmail } from '../services/authService';
+import { authService } from '../services/authService';
 
 export const AUTH_USER_CACHE_KEY = 'ccm_user_cache';
 export const AUTH_TOKEN_CACHE_KEY = 'ccm_auth_token';

@@ -66,6 +66,26 @@ async function run() {
       console.log('✅ Multi-Tenant RLS migration applied successfully!');
     }
 
+    const subsequentMigrations = [
+      '065_client_master_enhanced_schema.sql',
+      '066_client_master_rpc_functions.sql',
+      '067_client_master_permissions.sql',
+      '068_vendor_master_enhanced_schema.sql',
+      '069_vendor_master_rpc_functions.sql',
+      '070_vendor_master_permissions.sql',
+      '071_seed_admin_login_user.sql',
+    ];
+
+    for (const mig of subsequentMigrations) {
+      const migPath = path.join(process.cwd(), 'supabase', 'migrations', mig);
+      if (fs.existsSync(migPath)) {
+        console.log(`\n🚀 Applying ${mig}...`);
+        const migSql = fs.readFileSync(migPath, 'utf8');
+        await client.query(migSql);
+        console.log(`✅ ${mig} applied successfully!`);
+      }
+    }
+
     console.log('\n🎉 ALL MIGRATIONS AND SEEDS APPLIED AUTOMATICALLY!\n');
   } catch (err) {
     console.error('\n❌ Error executing SQL script:', err.message);

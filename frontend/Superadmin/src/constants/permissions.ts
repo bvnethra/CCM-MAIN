@@ -27,10 +27,12 @@ export const PERMISSION_CODES = {
   PERMISSION_VIEW: 'permission.view',
 
   // Client
-  CLIENT_VIEW: 'client.view',
-  CLIENT_CREATE: 'client.create',
-  CLIENT_UPDATE: 'client.update',
-  CLIENT_DELETE: 'client.delete',
+  CLIENT_VIEW: 'CLIENT_VIEW',
+  CLIENT_CREATE: 'CLIENT_CREATE',
+  CLIENT_UPDATE: 'CLIENT_UPDATE',
+  CLIENT_STATUS_UPDATE: 'CLIENT_STATUS_UPDATE',
+  CLIENT_HISTORY_VIEW: 'CLIENT_HISTORY_VIEW',
+  CLIENT_DELETE: 'CLIENT_DELETE',
 
   // Vendor
   VENDOR_VIEW: 'vendor.view',

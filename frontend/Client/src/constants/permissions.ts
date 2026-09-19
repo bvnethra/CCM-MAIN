@@ -36,6 +36,8 @@ export const PERMISSION_CODES = {
   VENDOR_VIEW: 'vendor.view',
   VENDOR_CREATE: 'vendor.create',
   VENDOR_UPDATE: 'vendor.update',
+  VENDOR_STATUS_UPDATE: 'vendor.status_update',
+  VENDOR_HISTORY_VIEW: 'vendor.history_view',
   VENDOR_DELETE: 'vendor.delete',
 
   // Item
@@ -150,6 +152,8 @@ export const MODULES_PERMISSIONS = [
       { code: PERMISSION_CODES.VENDOR_VIEW, label: 'View Vendors', action: 'view' },
       { code: PERMISSION_CODES.VENDOR_CREATE, label: 'Create Vendors', action: 'create' },
       { code: PERMISSION_CODES.VENDOR_UPDATE, label: 'Edit Vendors', action: 'edit' },
+      { code: PERMISSION_CODES.VENDOR_STATUS_UPDATE, label: 'Update Vendor Status', action: 'status_update' },
+      { code: PERMISSION_CODES.VENDOR_HISTORY_VIEW, label: 'View Vendor History', action: 'history_view' },
       { code: PERMISSION_CODES.VENDOR_DELETE, label: 'Delete Vendors', action: 'delete' },
     ],
   },
@@ -275,6 +279,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSION_CODES.VENDOR_VIEW,
     PERMISSION_CODES.VENDOR_CREATE,
     PERMISSION_CODES.VENDOR_UPDATE,
+    PERMISSION_CODES.VENDOR_STATUS_UPDATE,
+    PERMISSION_CODES.VENDOR_HISTORY_VIEW,
     PERMISSION_CODES.ITEM_VIEW,
     PERMISSION_CODES.ITEM_CREATE,
     PERMISSION_CODES.ITEM_UPDATE,

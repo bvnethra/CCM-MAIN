@@ -24,6 +24,9 @@ import { TextInput, SelectInput, Textarea } from '../../components/forms/FormCon
 import { useNotification } from '../../context/NotificationContext';
 import { mockStore } from '../../mock/initialStore';
 
+// TODO: Create DispatchCreateContainer component
+// export { DispatchCreateContainer as DispatchCreatePage } from './DispatchCreateContainer';
+
 // SIGNATURES PAGE: Separate Invoice and Delivery events
 export const SignatureManagementPage: React.FC = () => {
   const [signatures, setSignatures] = useState<DigitalSignature[]>([]);
@@ -190,16 +193,8 @@ export const SignatureManagementPage: React.FC = () => {
 export const DispatchListPage: React.FC = () => {
   const [dispatches, setDispatches] = useState<DispatchRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
 
-  // Create modal states
-  const [requestId, setRequestId] = useState(mockStore.data.requests[0]?.id || '');
-  const [transportMode, setTransportMode] = useState<any>('COURIER');
-  const [courierName, setCourierName] = useState('Blue Dart Express');
-  const [trackingNumber, setTrackingNumber] = useState('');
-  const [totalPackages, setTotalPackages] = useState(1);
-  const [deliveryAddress, setDeliveryAddress] = useState('Client Works, Manufacturing Plant');
-
+  const navigate = useNavigate();
   const { showToast } = useNotification();
 
   const loadDispatches = async () => {
@@ -217,42 +212,6 @@ export const DispatchListPage: React.FC = () => {
   useEffect(() => {
     loadDispatches();
   }, []);
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const req = mockStore.data.requests.find((r) => r.id === requestId);
-    if (!req) return;
-
-    try {
-      const created = await dispatchService.create({
-        requestId: req.id,
-        requestNumber: req.requestNumber,
-        clientId: req.clientId,
-        clientName: req.clientName,
-        dispatchDate: new Date().toISOString().split('T')[0],
-        transportMode,
-        courierName,
-        trackingNumber: trackingNumber || `AWB-${Math.floor(10000000 + Math.random() * 90000000)}`,
-        contactPerson: 'Quality Officer',
-        deliveryAddress,
-        items: req.items.map((it) => ({
-          id: `di-${Date.now()}`,
-          requestItemId: it.id,
-          itemName: it.itemName,
-          serialNumber: it.serialNumber,
-          quantity: it.receivedQuantity || 1,
-        })),
-        totalPackages,
-        remarks: 'Tamper evident seal applied. Calibration certificates enclosed.',
-      });
-
-      showToast(`Dispatch ${created.dispatchNumber} booked!`, 'success');
-      setCreateModalOpen(false);
-      loadDispatches();
-    } catch {
-      showToast('Error creating dispatch', 'error');
-    }
-  };
 
   const columns: Column<DispatchRecord>[] = [
     {
@@ -310,7 +269,7 @@ export const DispatchListPage: React.FC = () => {
         </div>
         <button
           type="button"
-          onClick={() => setCreateModalOpen(true)}
+          onClick={() => navigate('/dispatch/new')}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs"
         >
           <Plus className="w-4 h-4" />
@@ -319,86 +278,6 @@ export const DispatchListPage: React.FC = () => {
       </div>
 
       <DataTable data={dispatches} columns={columns} loading={loading} />
-
-      <Modal
-        isOpen={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-        title="Create Outbound Dispatch"
-        maxWidth="max-w-md"
-      >
-        <form onSubmit={handleCreate} className="space-y-4">
-          <SelectInput
-            label="Calibration Request Ready to Dispatch"
-            required
-            value={requestId}
-            onChange={(e) => setRequestId(e.target.value)}
-            options={mockStore.data.requests.map((r) => ({
-              value: r.id,
-              label: `${r.requestNumber} - ${r.clientName} (${r.status})`,
-            }))}
-          />
-
-          <div className="grid grid-cols-2 gap-3">
-            <SelectInput
-              label="Transport Mode"
-              required
-              value={transportMode}
-              onChange={(e) => setTransportMode(e.target.value)}
-              options={[
-                { value: 'COURIER', label: 'Express Courier' },
-                { value: 'HAND_DELIVERY', label: 'Direct Hand Delivery' },
-                { value: 'LOGISTICS_PARTNER', label: 'Dedicated Logistics Truck' },
-                { value: 'CLIENT_PICKUP', label: 'Client Self Pickup' },
-              ]}
-            />
-            <TextInput
-              label="Courier / Logistics Partner"
-              value={courierName}
-              onChange={(e) => setCourierName(e.target.value)}
-              placeholder="e.g. Blue Dart / DTDC"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <TextInput
-              label="AWB / Tracking Number"
-              value={trackingNumber}
-              onChange={(e) => setTrackingNumber(e.target.value)}
-              placeholder="Leave blank for auto-generated AWB"
-            />
-            <TextInput
-              type="number"
-              label="Total Packages"
-              min={1}
-              value={String(totalPackages)}
-              onChange={(e) => setTotalPackages(Number(e.target.value) || 1)}
-            />
-          </div>
-
-          <TextInput
-            label="Delivery Destination Address"
-            required
-            value={deliveryAddress}
-            onChange={(e) => setDeliveryAddress(e.target.value)}
-          />
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => setCreateModalOpen(false)}
-              className="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs"
-            >
-              Book Dispatch
-            </button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 };

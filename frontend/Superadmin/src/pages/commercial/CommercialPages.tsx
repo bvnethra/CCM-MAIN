@@ -18,7 +18,8 @@ import {
 import { Quotation, QuotationFormData } from '../../types/quotation';
 import { ApprovalRecord, PurchaseOrder, Invoice, InvoiceType } from '../../types/invoice';
 import { quotationService, approvalService, purchaseOrderService, invoiceService } from '../../services/commercialServices';
-import { clientService, itemService } from '../../services/clientService';
+import { clientService } from '../../services/clientService';
+import { itemService } from '../../services/itemService';
 import { requestService } from '../../services/requestService';
 import { DataTable, Column } from '../../components/common/DataTable';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -147,7 +148,7 @@ export const QuotationCreatePage: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     Promise.all([
-      clientService.getAll(),
+      clientService.getClients(),
       requestService.getAll(),
       itemService.getAll(),
     ])

@@ -25,7 +25,7 @@ import {
 
 // Master Data
 import { ClientListPage, ClientDetailPage, ClientOnboardingWizard } from '../pages/clients/ClientPages';
-import { VendorListPage, VendorDetailPage, VendorOnboardingWizard } from '../pages/vendors/VendorPages';
+import { VendorListPage, VendorDetailPage, VendorOnboardingWizard, EditVendorPage } from '../pages/vendors/VendorPages';
 import { ItemMasterListPage, AddItemPage } from '../pages/items/ItemMasterPages';
 
 // Operations
@@ -306,6 +306,14 @@ export const AppRoutes: React.FC = () => {
           element={
             <PermissionRoute permission={PERMISSION_CODES.VENDOR_VIEW}>
               <VendorDetailPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="vendors/edit/:id"
+          element={
+            <PermissionRoute permission={PERMISSION_CODES.VENDOR_UPDATE}>
+              <EditVendorPage />
             </PermissionRoute>
           }
         />

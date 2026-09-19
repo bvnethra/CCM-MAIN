@@ -1,574 +1,344 @@
-import { Client, ClientFormData } from '../types/client';
-import { Vendor, VendorFormData } from '../types/vendor';
-import { Item, ItemFormData, ItemStatus } from '../types/item';
-import { mockStore } from '../mock/initialStore';
-import { apiClient } from '../lib/api/apiClient';
+// ============================================================================
+// CLIENT MASTER SERVICE - Supabase RPC Functions
+// ============================================================================
+// This service calls PostgreSQL RPC functions directly via Supabase client
+// NO REST API, NO backend layer - direct database RPC calls
+// ============================================================================
 
-function parseList(res: any): any[] | null {
-  if (!res || !res.success) return null;
-  if (Array.isArray(res.data)) return res.data;
-  if (res.data && Array.isArray(res.data.data)) return res.data.data;
-  return [];
+import { supabase } from '../lib/auth/supabaseClient';
+import type {
+  Client,
+  ClientFormData,
+  ClientFilters,
+  ClientListResponse,
+  ClientDetailsResponse,
+  GstinDuplicateResponse,
+  NameDuplicateResponse,
+  CreateClientResponse
+} from '../types/client';
+
+// ===========================================
+// HELPER: Get Current User Context
+// ===========================================
+
+function getCurrentUserContext() {
+  try {
+    const userCache = localStorage.getItem('ccm_user_cache');
+    if (userCache) {
+      const user = JSON.parse(userCache);
+      return {
+        userId: user.userId || user.id,
+        tenantId: user.tenantId,
+        organizationId: user.organizationId
+      };
+    }
+  } catch (error) {
+    console.error('Failed to get user context:', error);
+  }
+  
+  throw new Error('User not authenticated. Please log in again.');
 }
 
+// ===========================================
+// HELPER: Set Session Context for RLS
+// ===========================================
+
+async function setSessionContext() {
+  const ctx = getCurrentUserContext();
+  
+  // Set PostgreSQL session variables for RLS policies
+  await supabase.rpc('set_config', {
+    setting_name: 'app.current_user_id',
+    setting_value: ctx.userId
+  });
+  
+  await supabase.rpc('set_config', {
+    setting_name: 'app.current_tenant_id',
+    setting_value: ctx.tenantId
+  });
+  
+  await supabase.rpc('set_config', {
+    setting_name: 'app.current_organization_id',
+    setting_value: ctx.organizationId
+  });
+  
+  return ctx;
+}
+
+// ===========================================
+// SERVICE METHODS
+// ===========================================
+
 export const clientService = {
-  async getAll(): Promise<Client[]> {
+  /**
+   * Get list of clients with pagination, search, and filters
+   */
+  async getClients(
+    page: number = 0,
+    size: number = 20,
+    filters?: ClientFilters
+  ): Promise<ClientListResponse> {
     try {
-      const res = await apiClient.get('/api/master/clients');
-      const list = parseList(res);
-      if (list !== null) {
-        return list.map((c: any) => ({
-          id: c.id,
-          tenantId: c.tenant_id || c.tenantId || '00000000-0000-0000-0000-000000000001',
-          organizationId: c.organization_id || c.organizationId || '00000000-0000-0000-0000-000000000001',
-          clientName: c.clientName || c.name || 'Client',
-          clientCode: c.clientCode || c.code || 'CLI-001',
-          businessType: c.businessType || c.business_type || 'Manufacturing',
-          gstNumber: c.gstNumber || c.gstin || '',
-          contactPersonName: c.contactPersonName || c.contactPerson || c.contact_person || 'Contact',
-          contactPersonContactNumber: c.contactPersonContactNumber || c.phone || '',
-          email: c.email || '',
-          phone: c.phone || c.phoneNumber || '',
-          phoneNumber: c.phoneNumber || c.phone || '',
-          address: c.address || '',
-          city: c.city || 'Bangalore',
-          state: c.state || 'Karnataka',
-          country: c.country || 'India',
-          pincode: c.pincode || '560001',
-          currency: c.currency || 'INR',
-          numberOfBranches: Number(c.numberOfBranches) || 1,
-          numberOfWarehouses: Number(c.numberOfWarehouses) || 1,
-          onboardingDate: c.onboardingDate || c.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-          accountStatus: (c.status === 'ACTIVE' || c.accountStatus === 'Active') ? 'Active' : 'Inactive',
-          msmeNumber: c.msmeNumber || '',
-          activeRequestsCount: c.activeRequestsCount || 0,
-          createdAt: c.created_at || c.createdAt || new Date().toISOString().split('T')[0],
-        }));
+      await setSessionContext();
+      
+      const { data, error } = await supabase.rpc('rpc_list_clients', {
+        p_page: page,
+        p_size: size,
+        p_search: filters?.search || null,
+        p_status: filters?.status || null,
+        p_city: filters?.city || null,
+        p_state: filters?.state || null,
+        p_payment_terms: filters?.paymentTerms || null,
+        p_sort_by: 'created_at',
+        p_sort_order: 'desc'
+      });
+      
+      if (error) {
+        console.error('Error fetching clients:', error);
+        throw new Error(error.message || 'Failed to fetch clients');
       }
-    } catch (err) {
-      console.warn('clientService.getAll API fetch warning:', err);
+      
+      return data as ClientListResponse;
+    } catch (error: any) {
+      console.error('getClients error:', error);
+      throw error;
     }
-    return [...mockStore.data.clients];
   },
 
-  async getById(id: string): Promise<Client | null> {
+  /**
+   * Get single client by ID with optional history
+   */
+  async getClient(id: string, includeHistory: boolean = true): Promise<ClientDetailsResponse> {
     try {
-      const res = await apiClient.get(`/api/master/clients/${id}`);
-      if (res && res.success && res.data) {
-        const c = res.data;
-        return {
-          id: c.id,
-          tenantId: c.tenant_id || c.tenantId || '00000000-0000-0000-0000-000000000001',
-          organizationId: c.organization_id || c.organizationId || '00000000-0000-0000-0000-000000000001',
-          clientName: c.clientName || c.name,
-          clientCode: c.clientCode || c.code,
-          businessType: c.businessType || c.business_type || 'Manufacturing',
-          gstNumber: c.gstNumber || c.gstin,
-          contactPersonName: c.contactPersonName || c.contactPerson,
-          contactPersonContactNumber: c.contactPersonContactNumber || c.phone,
-          email: c.email,
-          phone: c.phone || c.phoneNumber || '',
-          phoneNumber: c.phoneNumber || c.phone,
-          address: c.address,
-          city: c.city || 'Bangalore',
-          state: c.state || 'Karnataka',
-          country: c.country || 'India',
-          pincode: c.pincode || '560001',
-          currency: c.currency || 'INR',
-          numberOfBranches: Number(c.numberOfBranches) || 1,
-          numberOfWarehouses: Number(c.numberOfWarehouses) || 1,
-          onboardingDate: c.onboardingDate || c.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-          accountStatus: (c.status === 'ACTIVE' || c.accountStatus === 'Active') ? 'Active' : 'Inactive',
-          msmeNumber: c.msmeNumber,
-          activeRequestsCount: c.activeRequestsCount || 0,
-          createdAt: c.created_at || c.createdAt || new Date().toISOString().split('T')[0],
-        };
+      await setSessionContext();
+      
+      const { data, error } = await supabase.rpc('rpc_get_client_details', {
+        p_client_id: id,
+        p_include_history: includeHistory
+      });
+      
+      if (error) {
+        console.error('Error fetching client:', error);
+        
+        if (error.message.includes('CLIENT_NOT_FOUND')) {
+          throw new Error('Client not found');
+        }
+        
+        throw new Error(error.message || 'Failed to fetch client');
       }
-    } catch (err) {
-      console.warn('clientService.getById API fetch warning:', err);
+      
+      return data as ClientDetailsResponse;
+    } catch (error: any) {
+      console.error('getClient error:', error);
+      throw error;
     }
-    const client = mockStore.data.clients.find((c) => c.id === id);
-    return client ? { ...client } : null;
   },
 
-  async create(data: ClientFormData): Promise<Client> {
+  /**
+   * Create new client
+   */
+  async createClient(formData: ClientFormData): Promise<CreateClientResponse> {
     try {
-      const payload = {
-        name: data.clientName,
-        code: data.clientCode.toUpperCase(),
-        contactPerson: data.contactPersonName,
-        email: data.email || undefined,
-        phone: data.phoneNumber || undefined,
-        address: data.address || undefined,
-        gstin: data.gstNumber || undefined,
-        status: data.accountStatus === 'Active' ? 'ACTIVE' : 'INACTIVE'
-      };
-      const res = await apiClient.post('/api/master/clients', payload);
-      if (res && res.success && res.data) {
-        const c = res.data;
-        const phoneVal = data.phone || data.phoneNumber || '';
-        const newClient: Client = {
-          id: c.id,
-          tenantId: '00000000-0000-0000-0000-000000000001',
-          organizationId: '00000000-0000-0000-0000-000000000001',
-          clientName: c.name || data.clientName,
-          clientCode: c.code || data.clientCode,
-          businessType: data.businessType,
-          gstNumber: data.gstNumber,
-          contactPersonName: data.contactPersonName,
-          contactPersonContactNumber: phoneVal,
-          email: data.email,
-          phone: phoneVal,
-          phoneNumber: phoneVal,
-          address: data.address,
-          city: data.city,
-          state: data.state,
-          country: data.country,
-          pincode: data.pincode,
-          currency: data.currency,
-          numberOfBranches: Number(data.numberOfBranches) || 1,
-          numberOfWarehouses: Number(data.numberOfWarehouses) || 1,
-          onboardingDate: data.onboardingDate || new Date().toISOString().split('T')[0],
-          accountStatus: data.accountStatus || 'Active',
-          msmeNumber: data.msmeNumber,
-          activeRequestsCount: 0,
-          createdAt: new Date().toISOString().split('T')[0],
-        };
-        mockStore.data.clients.unshift(newClient);
-        return newClient;
+      await setSessionContext();
+      
+      const { data, error } = await supabase.rpc('rpc_create_client', {
+        p_client_name: formData.clientName,
+        p_registered_address: formData.registeredAddress,
+        p_billing_address: formData.billingAddress || null,
+        p_city: formData.city,
+        p_state: formData.state,
+        p_pin_code: formData.pinCode,
+        p_gstin_tax_id: formData.gstinTaxId,
+        p_contact_person: formData.contactPerson,
+        p_phone: formData.phone,
+        p_email: formData.email,
+        p_status: formData.status || 'ACTIVE',
+        p_payment_terms: formData.paymentTerms || '30_DAYS'
+      });
+      
+      if (error) {
+        console.error('Error creating client:', error);
+        
+        // Parse error codes
+        if (error.message.includes('DUPLICATE_GSTIN')) {
+          throw new Error('A client with this GSTIN already exists');
+        }
+        if (error.message.includes('INVALID_GSTIN_FORMAT')) {
+          throw new Error('Invalid GSTIN format');
+        }
+        if (error.message.includes('INVALID_PIN_FORMAT')) {
+          throw new Error('Invalid PIN code format');
+        }
+        if (error.message.includes('INVALID_PHONE_FORMAT')) {
+          throw new Error('Invalid phone number format');
+        }
+        if (error.message.includes('INVALID_EMAIL_FORMAT')) {
+          throw new Error('Invalid email format');
+        }
+        if (error.message.includes('VALIDATION_ERROR')) {
+          throw new Error(error.message.split(': ')[1] || 'Validation error');
+        }
+        
+        throw new Error(error.message || 'Failed to create client');
       }
-    } catch (err) {
-      console.warn('clientService.create API warning:', err);
+      
+      return data as CreateClientResponse;
+    } catch (error: any) {
+      console.error('createClient error:', error);
+      throw error;
     }
-    const phoneVal = data.phone || data.phoneNumber || '';
-    const newClient: Client = {
-      id: `cli-${Date.now()}`,
-      tenantId: '00000000-0000-0000-0000-000000000001',
-      organizationId: '00000000-0000-0000-0000-000000000001',
-      clientName: data.clientName,
-      clientCode: data.clientCode.toUpperCase(),
-      businessType: data.businessType,
-      gstNumber: data.gstNumber,
-      contactPersonName: data.contactPersonName,
-      contactPersonContactNumber: phoneVal,
-      email: data.email,
-      phone: phoneVal,
-      phoneNumber: phoneVal,
-      address: data.address,
-      city: data.city,
-      state: data.state,
-      country: data.country,
-      pincode: data.pincode,
-      currency: data.currency,
-      numberOfBranches: Number(data.numberOfBranches) || 1,
-      numberOfWarehouses: Number(data.numberOfWarehouses) || 1,
-      onboardingDate: data.onboardingDate || new Date().toISOString().split('T')[0],
-      accountStatus: data.accountStatus || 'Active',
-      msmeNumber: data.msmeNumber,
-      activeRequestsCount: 0,
-      createdAt: new Date().toISOString().split('T')[0],
+  },
+
+  /**
+   * Update existing client
+   */
+  async updateClient(id: string, formData: Partial<ClientFormData>): Promise<Client> {
+    try {
+      await setSessionContext();
+      
+      const { data, error } = await supabase.rpc('rpc_update_client', {
+        p_client_id: id,
+        p_client_name: formData.clientName || null,
+        p_registered_address: formData.registeredAddress || null,
+        p_billing_address: formData.billingAddress || null,
+        p_city: formData.city || null,
+        p_state: formData.state || null,
+        p_pin_code: formData.pinCode || null,
+        p_gstin_tax_id: formData.gstinTaxId || null,
+        p_contact_person: formData.contactPerson || null,
+        p_phone: formData.phone || null,
+        p_email: formData.email || null,
+        p_status: formData.status || null,
+        p_payment_terms: formData.paymentTerms || null
+      });
+      
+      if (error) {
+        console.error('Error updating client:', error);
+        
+        if (error.message.includes('CLIENT_NOT_FOUND')) {
+          throw new Error('Client not found');
+        }
+        if (error.message.includes('DUPLICATE_GSTIN')) {
+          throw new Error('A client with this GSTIN already exists');
+        }
+        if (error.message.includes('INVALID_GSTIN_FORMAT')) {
+          throw new Error('Invalid GSTIN format');
+        }
+        if (error.message.includes('INVALID_PIN_FORMAT')) {
+          throw new Error('Invalid PIN code format');
+        }
+        if (error.message.includes('INVALID_PHONE_FORMAT')) {
+          throw new Error('Invalid phone number format');
+        }
+        if (error.message.includes('INVALID_EMAIL_FORMAT')) {
+          throw new Error('Invalid email format');
+        }
+        
+        throw new Error(error.message || 'Failed to update client');
+      }
+      
+      return data as Client;
+    } catch (error: any) {
+      console.error('updateClient error:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Update client status (Activate/Deactivate)
+   */
+  async updateClientStatus(id: string, status: 'ACTIVE' | 'INACTIVE'): Promise<Client> {
+    try {
+      await setSessionContext();
+      
+      const { data, error } = await supabase.rpc('rpc_update_client_status', {
+        p_client_id: id,
+        p_status: status
+      });
+      
+      if (error) {
+        console.error('Error updating client status:', error);
+        
+        if (error.message.includes('CLIENT_NOT_FOUND')) {
+          throw new Error('Client not found');
+        }
+        if (error.message.includes('CLIENT_HAS_ACTIVE_REQUESTS')) {
+          throw new Error('Cannot deactivate client with active requests');
+        }
+        
+        throw new Error(error.message || 'Failed to update client status');
+      }
+      
+      return data as Client;
+    } catch (error: any) {
+      console.error('updateClientStatus error:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Check if GSTIN already exists (for real-time validation)
+   */
+  async checkGstinDuplicate(
+    gstin: string,
+    excludeClientId?: string
+  ): Promise<GstinDuplicateResponse> {
+    try {
+      await setSessionContext();
+      
+      const { data, error } = await supabase.rpc('rpc_check_gstin_duplicate', {
+        p_gstin_tax_id: gstin.toUpperCase(),
+        p_exclude_client_id: excludeClientId || null
+      });
+      
+      if (error) {
+        console.error('Error checking GSTIN duplicate:', error);
+        throw new Error('Failed to check GSTIN duplicate');
+      }
+      
+      return data as GstinDuplicateResponse;
+    } catch (error: any) {
+      console.error('checkGstinDuplicate error:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Check if client name already exists (warning only, non-blocking)
+   */
+  async checkNameDuplicate(
+    name: string,
+    excludeClientId?: string
+  ): Promise<NameDuplicateResponse> {
+    try {
+      await setSessionContext();
+      
+      const { data, error } = await supabase.rpc('rpc_check_name_duplicate', {
+        p_client_name: name,
+        p_exclude_client_id: excludeClientId || null
+      });
+      
+      if (error) {
+        console.error('Error checking name duplicate:', error);
+        throw new Error('Failed to check name duplicate');
+      }
+      
+      return data as NameDuplicateResponse;
+    } catch (error: any) {
+      console.error('checkNameDuplicate error:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get client history (stub for future implementation)
+   */
+  async getClientHistory(id: string) {
+    // This will be populated when request/quotation/invoice modules are ready
+    return {
+      requests: [],
+      quotations: [],
+      invoices: []
     };
-    mockStore.data.clients.unshift(newClient);
-    return newClient;
-  },
-
-  async update(id: string, data: Partial<ClientFormData>): Promise<Client> {
-    try {
-      const payload = {
-        name: data.clientName,
-        code: data.clientCode ? data.clientCode.toUpperCase() : undefined,
-        contactPerson: data.contactPersonName,
-        email: data.email,
-        phone: data.phoneNumber,
-        address: data.address,
-        gstin: data.gstNumber,
-        status: data.accountStatus ? (data.accountStatus === 'Active' ? 'ACTIVE' : 'INACTIVE') : undefined
-      };
-      await apiClient.put(`/api/master/clients/${id}`, payload);
-    } catch (err) {
-      console.warn('clientService.update API warning:', err);
-    }
-    const index = mockStore.data.clients.findIndex((c) => c.id === id);
-    if (index !== -1) {
-      const updated: Client = {
-        ...mockStore.data.clients[index],
-        ...data,
-        clientCode: data.clientCode ? data.clientCode.toUpperCase() : mockStore.data.clients[index].clientCode,
-        numberOfBranches: data.numberOfBranches !== undefined ? Number(data.numberOfBranches) : mockStore.data.clients[index].numberOfBranches,
-        numberOfWarehouses: data.numberOfWarehouses !== undefined ? Number(data.numberOfWarehouses) : mockStore.data.clients[index].numberOfWarehouses,
-      };
-      mockStore.data.clients[index] = updated;
-      return updated;
-    }
-    return null as any;
-  },
-
-  async delete(id: string): Promise<void> {
-    try {
-      await apiClient.put(`/api/master/clients/${id}`, { status: 'INACTIVE' });
-    } catch (err) {
-      console.warn('clientService.delete API warning:', err);
-    }
-    mockStore.data.clients = mockStore.data.clients.filter((c) => c.id !== id);
-  },
-};
-
-export const vendorService = {
-  async getAll(): Promise<Vendor[]> {
-    try {
-      const res = await apiClient.get('/api/master/vendors');
-      const list = parseList(res);
-      if (list !== null) {
-        return list.map((v: any) => ({
-          id: v.id,
-          tenantId: v.tenant_id || v.tenantId || '00000000-0000-0000-0000-000000000001',
-          organizationId: v.organization_id || v.organizationId || '00000000-0000-0000-0000-000000000001',
-          vendorName: v.vendorName || v.name || 'Vendor',
-          vendorCode: v.vendorCode || v.code || 'VEN-001',
-          businessType: v.businessType || v.business_type || 'Calibration Laboratory',
-          contactPersonName: v.contactPersonName || v.contactPerson || v.contact_person || 'Contact',
-          gstNumber: v.gstNumber || v.gstin || '',
-          panNumber: v.panNumber || '',
-          email: v.email || '',
-          phone: v.phone || v.phoneNumber || '',
-          phoneNumber: v.phoneNumber || v.phone || '',
-          address: v.address || '',
-          city: v.city || 'Bangalore',
-          state: v.state || 'Karnataka',
-          country: v.country || 'India',
-          pincode: v.pincode || '560001',
-          creditScore: Number(v.creditScore) || 85,
-          creditLevel: v.creditLevel || 'Gold Tier',
-          paymentDetails: v.paymentDetails || 'Net 30 Days',
-          termsAndConditions: v.termsAndConditions || 'Standard Vendor Agreement',
-          status: v.status || 'ACTIVE',
-          activePOCount: v.activePOCount || 0,
-          createdAt: v.created_at || v.createdAt || new Date().toISOString().split('T')[0],
-        }));
-      }
-    } catch (err) {
-      console.warn('vendorService.getAll API fetch warning:', err);
-    }
-    return [...mockStore.data.vendors];
-  },
-
-  async getById(id: string): Promise<Vendor | null> {
-    try {
-      const res = await apiClient.get(`/api/master/vendors/${id}`);
-      if (res && res.success && res.data) {
-        const v = res.data;
-        return {
-          id: v.id,
-          tenantId: v.tenant_id || v.tenantId || '00000000-0000-0000-0000-000000000001',
-          organizationId: v.organization_id || v.organizationId || '00000000-0000-0000-0000-000000000001',
-          vendorName: v.vendorName || v.name,
-          vendorCode: v.vendorCode || v.code,
-          businessType: v.businessType || 'Calibration Laboratory',
-          contactPersonName: v.contactPersonName || v.contactPerson,
-          gstNumber: v.gstNumber || v.gstin,
-          panNumber: v.panNumber,
-          email: v.email,
-          phone: v.phone || v.phoneNumber || '',
-          phoneNumber: v.phoneNumber || v.phone,
-          address: v.address,
-          city: v.city || 'Bangalore',
-          state: v.state || 'Karnataka',
-          country: v.country || 'India',
-          pincode: v.pincode || '560001',
-          creditScore: Number(v.creditScore) || 85,
-          creditLevel: v.creditLevel || 'Gold Tier',
-          paymentDetails: v.paymentDetails || 'Net 30 Days',
-          termsAndConditions: v.termsAndConditions || 'Standard Vendor Agreement',
-          status: v.status || 'ACTIVE',
-          activePOCount: v.activePOCount || 0,
-          createdAt: v.created_at || v.createdAt || new Date().toISOString().split('T')[0],
-        };
-      }
-    } catch (err) {
-      console.warn('vendorService.getById API fetch warning:', err);
-    }
-    const vendor = mockStore.data.vendors.find((v) => v.id === id);
-    return vendor ? { ...vendor } : null;
-  },
-
-  async create(data: VendorFormData): Promise<Vendor> {
-    try {
-      const payload = {
-        name: data.vendorName,
-        code: data.vendorCode.toUpperCase(),
-        contactPerson: data.contactPersonName,
-        email: data.email || undefined,
-        phone: data.phoneNumber || undefined,
-        address: data.address || undefined,
-        gstin: data.gstNumber || undefined,
-        status: 'ACTIVE'
-      };
-      const res = await apiClient.post('/api/master/vendors', payload);
-      if (res && res.success && res.data) {
-        const v = res.data;
-        const newVendor: Vendor = {
-          id: v.id,
-          tenantId: '00000000-0000-0000-0000-000000000001',
-          organizationId: '00000000-0000-0000-0000-000000000001',
-          vendorName: v.name || data.vendorName,
-          vendorCode: v.code || data.vendorCode,
-          businessType: data.businessType,
-          contactPersonName: data.contactPersonName,
-          gstNumber: data.gstNumber,
-          panNumber: data.panNumber,
-          email: data.email,
-          phoneNumber: data.phoneNumber,
-          address: data.address,
-          city: data.city,
-          state: data.state,
-          country: data.country,
-          pincode: data.pincode,
-          creditScore: Number(data.creditScore) || 75,
-          creditLevel: data.creditLevel,
-          paymentDetails: data.paymentDetails,
-          termsAndConditions: data.termsAndConditions,
-          status: 'ACTIVE',
-          activePOCount: 0,
-          createdAt: new Date().toISOString().split('T')[0],
-        };
-        mockStore.data.vendors.unshift(newVendor);
-        return newVendor;
-      }
-    } catch (err) {
-      console.warn('vendorService.create API warning:', err);
-    }
-    const newVendor: Vendor = {
-      id: `ven-${Date.now()}`,
-      tenantId: '00000000-0000-0000-0000-000000000001',
-      organizationId: '00000000-0000-0000-0000-000000000001',
-      vendorName: data.vendorName,
-      vendorCode: data.vendorCode.toUpperCase(),
-      businessType: data.businessType,
-      contactPersonName: data.contactPersonName,
-      gstNumber: data.gstNumber,
-      panNumber: data.panNumber,
-      email: data.email,
-      phoneNumber: data.phoneNumber,
-      address: data.address,
-      city: data.city,
-      state: data.state,
-      country: data.country,
-      pincode: data.pincode,
-      creditScore: Number(data.creditScore) || 75,
-      creditLevel: data.creditLevel,
-      paymentDetails: data.paymentDetails,
-      termsAndConditions: data.termsAndConditions,
-      status: 'ACTIVE',
-      activePOCount: 0,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-    mockStore.data.vendors.unshift(newVendor);
-    return newVendor;
-  },
-
-  async update(id: string, data: Partial<VendorFormData>): Promise<Vendor> {
-    try {
-      const payload = {
-        name: data.vendorName,
-        code: data.vendorCode ? data.vendorCode.toUpperCase() : undefined,
-        contactPerson: data.contactPersonName,
-        email: data.email,
-        phone: data.phoneNumber,
-        address: data.address,
-        gstin: data.gstNumber,
-      };
-      await apiClient.put(`/api/master/vendors/${id}`, payload);
-    } catch (err) {
-      console.warn('vendorService.update API warning:', err);
-    }
-    const index = mockStore.data.vendors.findIndex((v) => v.id === id);
-    if (index !== -1) {
-      const updated: Vendor = {
-        ...mockStore.data.vendors[index],
-        ...data,
-        vendorCode: data.vendorCode ? data.vendorCode.toUpperCase() : mockStore.data.vendors[index].vendorCode,
-        creditScore: data.creditScore !== undefined ? Number(data.creditScore) : mockStore.data.vendors[index].creditScore,
-      };
-      mockStore.data.vendors[index] = updated;
-      return updated;
-    }
-    return null as any;
-  },
-
-  async delete(id: string): Promise<void> {
-    try {
-      await apiClient.put(`/api/master/vendors/${id}`, { status: 'INACTIVE' });
-    } catch (err) {
-      console.warn('vendorService.delete API warning:', err);
-    }
-    mockStore.data.vendors = mockStore.data.vendors.filter((v) => v.id !== id);
-  },
-};
-
-export const itemService = {
-  async getAll(): Promise<Item[]> {
-    try {
-      const res = await apiClient.get('/api/master/items');
-      const list = parseList(res);
-      if (list !== null) {
-        return list.map((i: any) => ({
-          id: i.id,
-          tenantId: i.tenant_id || i.tenantId || '00000000-0000-0000-0000-000000000001',
-          organizationId: i.organization_id || i.organizationId || '00000000-0000-0000-0000-000000000001',
-          itemCode: i.itemCode || i.code || 'ITM-001',
-          itemName: i.itemName || i.name || 'Item',
-          itemType: i.itemType || i.category || 'Thermal Instrument',
-          manufacturer: i.manufacturer || 'Fluke Calibration',
-          model: i.model || '5522A',
-          serialNumber: i.serialNumber || i.serial_number || 'SN-100234',
-          measurementRange: i.measurementRange || '0-1000V',
-          leastCount: i.leastCount || '0.001V',
-          standardCost: Number(i.standardCost || i.standard_cost) || 1500,
-          calibrationFrequencyMonths: Number(i.calibrationFrequencyMonths) || 12,
-          status: (i.status === 'ACTIVE' || i.status === 'ACTIVE') ? 'ACTIVE' : (i.status === 'MAINTENANCE' ? 'MAINTENANCE' : 'INACTIVE') as ItemStatus,
-          description: i.description || '',
-          createdAt: i.created_at || i.createdAt || new Date().toISOString().split('T')[0],
-        }));
-      }
-    } catch (err) {
-      console.warn('itemService.getAll API fetch warning:', err);
-    }
-    return [...mockStore.data.items];
-  },
-
-  async getById(id: string): Promise<Item | null> {
-    try {
-      const res = await apiClient.get(`/api/master/items/${id}`);
-      if (res && res.success && res.data) {
-        const i = res.data;
-        return {
-          id: i.id,
-          tenantId: i.tenant_id || i.tenantId || '00000000-0000-0000-0000-000000000001',
-          organizationId: i.organization_id || i.organizationId || '00000000-0000-0000-0000-000000000001',
-          itemCode: i.itemCode || i.code,
-          itemName: i.itemName || i.name,
-          itemType: i.itemType || i.category || 'Thermal Instrument',
-          manufacturer: i.manufacturer || 'Fluke Calibration',
-          model: i.model || '5522A',
-          serialNumber: i.serialNumber || i.serial_number || 'SN-100234',
-          measurementRange: i.measurementRange || '0-1000V',
-          leastCount: i.leastCount || '0.001V',
-          standardCost: Number(i.standardCost || i.standard_cost) || 1500,
-          calibrationFrequencyMonths: Number(i.calibrationFrequencyMonths) || 12,
-          status: (i.status === 'ACTIVE' || i.status === 'ACTIVE') ? 'ACTIVE' : (i.status === 'MAINTENANCE' ? 'MAINTENANCE' : 'INACTIVE') as ItemStatus,
-          description: i.description || '',
-          createdAt: i.created_at || i.createdAt || new Date().toISOString().split('T')[0],
-        };
-      }
-    } catch (err) {
-      console.warn('itemService.getById API fetch warning:', err);
-    }
-    const item = mockStore.data.items.find((i) => i.id === id);
-    return item ? { ...item } : null;
-  },
-
-  async create(data: ItemFormData): Promise<Item> {
-    try {
-      const payload = {
-        code: data.itemCode.toUpperCase(),
-        name: data.itemName,
-        category: data.itemType,
-        manufacturer: data.manufacturer,
-        model: data.model,
-        serialNumber: data.serialNumber,
-        measurementRange: data.measurementRange,
-        leastCount: data.leastCount,
-        standardCost: Number(data.standardCost),
-        calibrationFrequencyMonths: Number(data.calibrationFrequencyMonths),
-        description: data.description,
-        status: data.status
-      };
-      const res = await apiClient.post('/api/master/items', payload);
-      if (res && res.success && res.data) {
-        const i = res.data;
-        const newItem: Item = {
-          id: i.id,
-          tenantId: '00000000-0000-0000-0000-000000000001',
-          organizationId: '00000000-0000-0000-0000-000000000001',
-          itemCode: i.code || data.itemCode,
-          itemName: i.name || data.itemName,
-          itemType: data.itemType,
-          manufacturer: data.manufacturer,
-          model: data.model,
-          serialNumber: data.serialNumber,
-          measurementRange: data.measurementRange,
-          leastCount: data.leastCount,
-          standardCost: Number(data.standardCost),
-          calibrationFrequencyMonths: Number(data.calibrationFrequencyMonths) || 12,
-          status: data.status,
-          description: data.description,
-          createdAt: new Date().toISOString().split('T')[0],
-        };
-        mockStore.data.items.unshift(newItem);
-        return newItem;
-      }
-    } catch (err) {
-      console.warn('itemService.create API warning:', err);
-    }
-    const newItem: Item = {
-      id: `itm-${Date.now()}`,
-      tenantId: '00000000-0000-0000-0000-000000000001',
-      organizationId: '00000000-0000-0000-0000-000000000001',
-      itemCode: data.itemCode.toUpperCase(),
-      itemName: data.itemName,
-      itemType: data.itemType,
-      manufacturer: data.manufacturer,
-      model: data.model,
-      serialNumber: data.serialNumber,
-      measurementRange: data.measurementRange,
-      leastCount: data.leastCount,
-      standardCost: Number(data.standardCost),
-      calibrationFrequencyMonths: Number(data.calibrationFrequencyMonths) || 12,
-      status: data.status,
-      description: data.description,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-    mockStore.data.items.unshift(newItem);
-    return newItem;
-  },
-
-  async update(id: string, data: Partial<ItemFormData>): Promise<Item> {
-    try {
-      const payload = {
-        code: data.itemCode ? data.itemCode.toUpperCase() : undefined,
-        name: data.itemName,
-        category: data.itemType,
-        manufacturer: data.manufacturer,
-        model: data.model,
-        serialNumber: data.serialNumber,
-        standardCost: data.standardCost !== undefined ? Number(data.standardCost) : undefined,
-        status: data.status
-      };
-      await apiClient.put(`/api/master/items/${id}`, payload);
-    } catch (err) {
-      console.warn('itemService.update API warning:', err);
-    }
-    const index = mockStore.data.items.findIndex((i) => i.id === id);
-    if (index !== -1) {
-      const updated: Item = {
-        ...mockStore.data.items[index],
-        ...data,
-        itemCode: data.itemCode ? data.itemCode.toUpperCase() : mockStore.data.items[index].itemCode,
-        standardCost: data.standardCost !== undefined ? Number(data.standardCost) : mockStore.data.items[index].standardCost,
-        calibrationFrequencyMonths: data.calibrationFrequencyMonths !== undefined ? Number(data.calibrationFrequencyMonths) : mockStore.data.items[index].calibrationFrequencyMonths,
-      };
-      mockStore.data.items[index] = updated;
-      return updated;
-    }
-    return null as any;
-  },
-
-  async delete(id: string): Promise<void> {
-    try {
-      await apiClient.put(`/api/master/items/${id}`, { status: 'INACTIVE' });
-    } catch (err) {
-      console.warn('itemService.delete API warning:', err);
-    }
-    mockStore.data.items = mockStore.data.items.filter((i) => i.id !== id);
-  },
+  }
 };

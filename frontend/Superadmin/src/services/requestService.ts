@@ -1,6 +1,7 @@
 import { CalibrationRequest, CreateRequestFormData, RequestStatus, RequestItem } from '../types/request';
 import { mockStore } from '../mock/initialStore';
 import { apiClient } from '../lib/api/apiClient';
+import { getActiveContext } from '../lib/tenantContext';
 
 function parseList(res: any): any[] | null {
   if (!res || !res.success) return null;
@@ -122,12 +123,13 @@ export const requestService = {
       const res = await apiClient.post('/api/requests', payload);
       if (res && res.success && res.data) {
         const r = res.data;
+        const { tenantId: activeTenantId, organizationId: activeOrgId } = getActiveContext();
         const client = mockStore.data.clients.find((c) => c.id === data.clientId);
         const newReq: CalibrationRequest = {
           id: r.id,
           requestNumber: r.request_number || r.requestNumber || `REQ-2026-${String(mockStore.data.requests.length + 1).padStart(3, '0')}`,
-          tenantId: '00000000-0000-0000-0000-000000000001',
-          organizationId: '00000000-0000-0000-0000-000000000001',
+          tenantId: activeTenantId,
+          organizationId: activeOrgId,
           organizationName: 'Apex Precision Labs Bangalore',
           clientId: data.clientId,
           clientName: client?.clientName || 'Client',
@@ -161,6 +163,7 @@ export const requestService = {
     } catch (err) {
       console.warn('requestService.create API warning:', err);
     }
+    const { tenantId: activeTenantId, organizationId: activeOrgId } = getActiveContext();
     const client = mockStore.data.clients.find((c) => c.id === data.clientId);
     const count = mockStore.data.requests.length + 1;
     const requestNumber = `REQ-2026-${String(count).padStart(3, '0')}`;
@@ -189,8 +192,8 @@ export const requestService = {
     const newRequest: CalibrationRequest = {
       id: requestId,
       requestNumber,
-      tenantId: '00000000-0000-0000-0000-000000000001',
-      organizationId: '00000000-0000-0000-0000-000000000001',
+      tenantId: activeTenantId,
+      organizationId: activeOrgId,
       organizationName: 'Apex Precision Labs Bangalore',
       clientId: data.clientId,
       clientName: client?.clientName || 'Unknown Client',
@@ -229,8 +232,8 @@ export const requestService = {
       userId: 'usr-002',
       userName: 'System User',
       role: 'Admin',
-      tenantId: '00000000-0000-0000-0000-000000000001',
-      organizationId: '00000000-0000-0000-0000-000000000001',
+      tenantId: req.tenantId,
+      organizationId: req.organizationId,
       module: 'request',
       action: 'status_change',
       recordId: req.id,

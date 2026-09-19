@@ -6,6 +6,41 @@ const API_BASE_URL = (rawApiUrl && !rawApiUrl.includes('localhost') && !rawApiUr
   ? rawApiUrl
   : (import.meta.env.DEV ? 'http://localhost:3000' : '');
 
+// ─── Dynamic Tenant Header Resolution ───────────────────────────────────────
+// Read the active user's tenantId and organizationId from the localStorage
+// session cache set by AuthContext. This avoids a circular import while still
+// enforcing proper multi-tenant data isolation on every outbound API call.
+// Falls back to the default demo tenant only when no session exists.
+
+const DEFAULT_TENANT_ID = '00000000-0000-0000-0000-000000000001';
+const DEFAULT_ORG_ID = '00000000-0000-0000-0000-000000000001';
+
+function getActiveTenantId(): string {
+  try {
+    const raw = localStorage.getItem('ccm_user_cache');
+    if (raw) {
+      const user = JSON.parse(raw);
+      if (user?.tenantId && user.tenantId !== '') return user.tenantId;
+    }
+  } catch {
+    // ignore parse errors; fall through to default
+  }
+  return DEFAULT_TENANT_ID;
+}
+
+function getActiveOrganizationId(): string {
+  try {
+    const raw = localStorage.getItem('ccm_user_cache');
+    if (raw) {
+      const user = JSON.parse(raw);
+      if (user?.organizationId && user.organizationId !== '') return user.organizationId;
+    }
+  } catch {
+    // ignore parse errors; fall through to default
+  }
+  return DEFAULT_ORG_ID;
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data: T;
@@ -62,10 +97,11 @@ async function request<T = any>(
   const token = await getAuthToken();
   const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
+  // Resolve tenant/org IDs dynamically from the active session — never hardcoded.
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'x-tenant-id': '00000000-0000-0000-0000-000000000001',
-    'x-organization-id': '00000000-0000-0000-0000-000000000001',
+    'x-tenant-id': getActiveTenantId(),
+    'x-organization-id': getActiveOrganizationId(),
     ...(options.headers as Record<string, string> || {})
   };
 

@@ -24,7 +24,7 @@ import {
 } from '../pages/admin/UserAndRolePages';
 
 // Master Data
-import { ClientListPage, ClientDetailPage, ClientOnboardingWizard } from '../pages/clients/ClientPages';
+import { ClientPages } from '../pages/clients';
 import { VendorListPage, VendorDetailPage, VendorOnboardingWizard } from '../pages/vendors/VendorPages';
 import { ItemMasterListPage, AddItemPage } from '../pages/items/ItemMasterPages';
 
@@ -261,26 +261,10 @@ export const AppRoutes: React.FC = () => {
 
         {/* Master Data */}
         <Route
-          path="clients"
+          path="clients/*"
           element={
             <PermissionRoute permission={PERMISSION_CODES.CLIENT_VIEW}>
-              <ClientListPage />
-            </PermissionRoute>
-          }
-        />
-        <Route
-          path="clients/new"
-          element={
-            <PermissionRoute permission={PERMISSION_CODES.CLIENT_CREATE}>
-              <ClientOnboardingWizard />
-            </PermissionRoute>
-          }
-        />
-        <Route
-          path="clients/:id"
-          element={
-            <PermissionRoute permission={PERMISSION_CODES.CLIENT_VIEW}>
-              <ClientDetailPage />
+              <ClientPages />
             </PermissionRoute>
           }
         />

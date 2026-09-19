@@ -252,8 +252,8 @@ export const AddInvoicePage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    clientService.getAll().then((data) => {
-      setClients(data);
+    clientService.getClients().then((data) => {
+      setClients(data.clients || []);
       if (data.length > 0) setClientId(data[0].id);
     });
     requestService.getAll().then((data) => {

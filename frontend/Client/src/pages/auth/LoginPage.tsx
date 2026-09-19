@@ -156,6 +156,21 @@ export const LoginPage: React.FC = () => {
                 </>
               )}
             </button>
+
+            {/* Quick Fill Admin Credentials */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('admin@calibration.demo');
+                  setPassword('Password@123');
+                }}
+                className="w-full py-2 px-3 bg-purple-50 hover:bg-purple-100 text-purple-800 rounded-xl border border-purple-200/80 text-xs font-semibold flex items-center justify-between transition-colors"
+              >
+                <span>⚡ Quick Fill: Admin (All Permissions)</span>
+                <span className="font-mono text-[11px] text-purple-600">Password@123</span>
+              </button>
+            </div>
           </form>
         </div>
 
